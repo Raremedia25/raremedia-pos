@@ -1,0 +1,4 @@
+project_id = "raremedia-pos"
+
+[functions.create-business]
+verify_jwt = false
