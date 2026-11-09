@@ -144,6 +144,16 @@ The `platform_admin` role is stored in `profiles` and must only be assigned by a
 - [ ] Run the SQL seed function twice for A; second call should be a no-op.
 - [ ] Confirm sales, payments and expenses are empty for both businesses.
 
+## 11. Deploy the web app to Render
+
+The root `render.yaml` defines a Render static site that builds from the `main` branch and automatically redeploys after each push.
+
+1. In the [Render Dashboard](https://dashboard.render.com/), choose **New → Blueprint** and connect `Raremedia25/raremedia-pos`.
+2. Set `VITE_SUPABASE_URL` to your Supabase project URL and `VITE_SUPABASE_ANON_KEY` to its publishable key when prompted.
+3. Create the Blueprint. Render will build the site and provide its public `onrender.com` URL.
+
+The site uses a client-side route rewrite to `index.html`. Do not set a service-role or `sb_secret_` key in Render's frontend environment variables. Apply the Supabase database migrations and deploy the Edge Function separately as described above.
+
 ## Important production hardening before public launch
 
 This is a foundation release, not yet a finished production POS. Before onboarding paying businesses, add automated authorization tests, stricter role-specific policies per table/action, audit logging for privileged actions, transactional checkout/stock functions, signed/private document storage where appropriate, backup/restore procedures, offline conflict handling, printer testing and monitoring. Configure rate limits and email templates in Supabase Auth.
