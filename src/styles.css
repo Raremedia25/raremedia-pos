@@ -125,3 +125,9 @@
 .team-error{margin:0 0 14px}
 .mobile-login-brand{display:none}
 @media(max-width:720px){.mobile-login-brand{display:flex;align-items:center;gap:10px;margin-bottom:26px;color:#14233b}.mobile-login-brand img{width:42px;height:42px}.mobile-login-brand b{font:800 13px Manrope;letter-spacing:1px}}
+.business-shell .main-area::before{content:"";position:fixed;right:4vw;bottom:5vh;width:clamp(125px,20vw,250px);aspect-ratio:1;background:url('/raremedia-rm-watermark.svg') center/contain no-repeat;opacity:.045;pointer-events:none;z-index:0}
+.business-shell .main-area>*{position:relative;z-index:1}
+.receipt,.report-print{position:relative;isolation:isolate}
+.brand-watermark{position:absolute;width:clamp(110px,22vw,220px);height:auto;right:8%;top:38%;opacity:.075;pointer-events:none;user-select:none;z-index:0}
+.receipt .brand-watermark{width:110px;right:10%;top:46%;opacity:.065}
+.receipt>:not(.brand-watermark),.report-print>:not(.brand-watermark){position:relative;z-index:1}
