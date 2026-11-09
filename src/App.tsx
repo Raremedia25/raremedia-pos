@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Activity, ArrowLeft, Building2, CheckCircle2, ChevronRight, CircleDollarSign,
+  Activity, ArrowLeft, Building2, CheckCircle2, ChevronRight, ChevronDown, CircleDollarSign,
   ClipboardList, Coffee, ImagePlus, LogOut, Package, Plus, Search, ShieldCheck,
   ShoppingCart, Store, Users, X, Truck, Wallet, BarChart3, Table2, RefreshCw,
+  House, Flame, Settings,
   Minus, Trash2, Printer, Boxes, FileText, ArrowUpRight, AlertTriangle
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./lib/supabase";
@@ -18,6 +19,7 @@ function App() {
   const [products,setProducts]=useState<Product[]>([]),[loading,setLoading]=useState(true),[message,setMessage]=useState("");
   const [loginEmail,setLoginEmail]=useState(""),[loginPassword,setLoginPassword]=useState("");
   const [showCreate,setShowCreate]=useState(false),[tab,setTab]=useState<Tab>("overview"),[refresh,setRefresh]=useState(0);
+  const [managementOpen,setManagementOpen]=useState(false),[businessSearch,setBusinessSearch]=useState(""),[businessStatus,setBusinessStatus]=useState<"all"|"active"|"suspended">("all");
   const identityRequest=useRef(0);
   async function loadIdentity(authSession:Session|null){
     const request=++identityRequest.current;
@@ -80,34 +82,43 @@ function App() {
   if(loading)return <div className="loading-screen"><div className="loader"/>Loading RAREMEDIA POS…</div>;
   if(!session)return <LoginScreen email={loginEmail} password={loginPassword} setEmail={setLoginEmail} setPassword={setLoginPassword} onSubmit={signIn} message={message}/>;
   const admin=profile?.platform_role==="platform_admin"||profile?.platform_role==="developer";
+  const managementActive=["products","purchases","customers","suppliers","tables","expenses","team"].includes(tab);
+  const visibleOrganizations=organizations.filter(org=>(businessStatus==="all"||org.status===businessStatus)&&org.name.toLowerCase().includes(businessSearch.trim().toLowerCase()));
   const openBusiness=(o:Organization)=>{setActiveOrg(o);setTab("overview");};
   return <div className={`app-shell ${activeOrg?"business-shell":""}`}>
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark">R</div><div><b>RAREMEDIA POS</b><span>SMART BUSINESS. BETTER CONTROL.</span></div></div>
-      {activeOrg?<><button className="business-switch" onClick={()=>setActiveOrg(null)} title="Switch business">
-        {activeOrg.logo_url?<img src={activeOrg.logo_url} alt=""/>:<span className="business-switch-mark"><Store size={18}/></span>}
-        <span><b>{activeOrg.name}</b><small>Switch business</small></span><ChevronRight size={16}/>
-      </button><div className="side-label">BUSINESS OPERATIONS</div>
-        <Nav tab={tab} set={setTab} value="overview" icon={<Activity/>}>Dashboard</Nav>
-        <Nav tab={tab} set={setTab} value="pos" icon={<ShoppingCart/>}>Point of Sale</Nav>
-        <Nav tab={tab} set={setTab} value="products" icon={<Package/>}>Products</Nav>
-        <Nav tab={tab} set={setTab} value="stock" icon={<Boxes/>}>Inventory</Nav>
-        <Nav tab={tab} set={setTab} value="purchases" icon={<ClipboardList/>}>Purchases</Nav>
-        <Nav tab={tab} set={setTab} value="customers" icon={<Users/>}>Customers</Nav>
-        <Nav tab={tab} set={setTab} value="suppliers" icon={<Truck/>}>Suppliers</Nav>
-        <Nav tab={tab} set={setTab} value="tables" icon={<Table2/>}>Tables</Nav>
-        <Nav tab={tab} set={setTab} value="expenses" icon={<Wallet/>}>Expenses</Nav>
-        <Nav tab={tab} set={setTab} value="reports" icon={<BarChart3/>}>Reports</Nav>
-        <Nav tab={tab} set={setTab} value="team" icon={<Users/>}>Team</Nav>
+      {activeOrg?<><div className="business-rail-brand" title={activeOrg.name}>{activeOrg.logo_url?<img src={activeOrg.logo_url} alt={`${activeOrg.name} logo`}/>:<span><Store size={21}/></span>}</div>
+        <nav className="business-primary-nav" aria-label="Business navigation">
+          <Nav tab={tab} set={setTab} value="overview" icon={<House/>}>Home</Nav>
+          <Nav tab={tab} set={setTab} value="pos" icon={<ShoppingCart/>}>Sales</Nav>
+          <button className="side-link kitchen-link" type="button" disabled title="Kitchen order workflow is not available yet"><Flame/><span>Kitchen</span></button>
+          <Nav tab={tab} set={setTab} value="stock" icon={<Boxes/>}>Stock</Nav>
+          <Nav tab={tab} set={setTab} value="reports" icon={<BarChart3/>}>Reports</Nav>
+          <button className={`side-link management-toggle ${managementActive?"active":""}`} type="button" aria-expanded={managementOpen||managementActive} onClick={()=>setManagementOpen(open=>!open)}><Settings/><span>Management</span><ChevronDown className="management-chevron"/></button>
+        </nav>
+        {(managementOpen||managementActive)&&<div className="sidebar-subnav" aria-label="Management tools">
+          <Nav tab={tab} set={setTab} value="products" icon={<Package/>}>Products</Nav>
+          <Nav tab={tab} set={setTab} value="purchases" icon={<ClipboardList/>}>Purchases</Nav>
+          <Nav tab={tab} set={setTab} value="customers" icon={<Users/>}>Customers</Nav>
+          <Nav tab={tab} set={setTab} value="suppliers" icon={<Truck/>}>Suppliers</Nav>
+          <Nav tab={tab} set={setTab} value="tables" icon={<Table2/>}>Tables</Nav>
+          <Nav tab={tab} set={setTab} value="expenses" icon={<Wallet/>}>Expenses</Nav>
+          <Nav tab={tab} set={setTab} value="team" icon={<Users/>}>Team</Nav>
+        </div>}
+        <button className="business-switch" onClick={()=>setActiveOrg(null)} title="Switch business">
+          <ChevronRight size={16}/><span><b>Switch business</b></span>
+        </button>
       </>:<><div className="side-label">PLATFORM</div><button className="side-link active" onClick={()=>setActiveOrg(null)}><Building2 size={18}/> Businesses</button></>}
       <div className="sidebar-bottom"><div className="user-mini"><div className="avatar">{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div><div><b>{profile?.full_name||"RAREMEDIA User"}</b><span>{profile?.platform_role==="developer"?"Developer":admin?"Super Admin":session.user.email}</span></div></div><button className="side-link" onClick={signOut}><LogOut size={18}/> Sign out</button></div>
     </aside>
     <main className="main-area"><header className="topbar"><div><span className="eyebrow">RAREMEDIA POS / {activeOrg?activeOrg.name:"PLATFORM"}</span><h1>{activeOrg?tabLabel(tab):"Business management"}</h1></div><div className="top-actions">{activeOrg&&<button className="top-business-switch" onClick={()=>setActiveOrg(null)}><Store size={15}/><span>{activeOrg.name}</span><ChevronRight size={14}/></button>}<span className="secure"><ShieldCheck size={15}/> Secure workspace</span><div className="avatar" title={profile?.full_name||session.user.email}>{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div></div></header>
       {message&&<div className="notice"><span>{message}</span><button onClick={()=>setMessage("")}><X size={16}/></button></div>}
-      {!activeOrg?<section className="content"><div className="welcome-row"><div><h2>{admin?"Your business network":"Your businesses"}</h2><p>Each business has independent products, users, stock and financial records.</p></div>{admin&&<button className="primary-btn" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create business</button>}</div>
-        <div className="stat-grid"><Stat icon={<Store/>} label="Businesses" value={String(organizations.length)} hint="Available to your account"/><Stat icon={<CheckCircle2/>} label="Active businesses" value={String(organizations.filter(o=>o.status==="active").length)} hint="Currently enabled"/><Stat icon={<ShieldCheck/>} label="Data protection" value="RLS" hint="Database-level isolation"/></div>
-        <div className="section-heading"><div><h3>Registered businesses</h3><p>Select a business to open its workspace.</p></div><span className="count-pill">{organizations.length} total</span></div>
-        {organizations.length===0?<div className="empty-state"><div className="empty-icon"><Building2/></div><h3>No business assigned yet</h3><p>{admin?"Create the first customer business to get started.":"Ask your Raremedia administrator to add your account."}</p>{admin&&<button className="primary-btn" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create first business</button>}</div>:<div className="business-grid">{organizations.map(o=><button className="business-card" key={o.id} onClick={()=>openBusiness(o)}><div className="business-card-top">{o.logo_url?<img className="business-logo" src={o.logo_url}/>:<div className="business-logo-placeholder"><Store/></div>}<span className={`status ${o.status}`}>{o.status}</span></div><h3>{o.name}</h3><p>{o.business_type}</p><div className="business-card-bottom"><span>{o.currency}</span><span>Open workspace <ChevronRight size={16}/></span></div></button>)}</div>}
+      {!activeOrg?<section className="content platform-content"><div className="platform-hero"><div><span className="eyebrow">PLATFORM OVERVIEW</span><h2>{admin?"Business network":"Your businesses"}</h2><p>Monitor business workspaces and open a secure workspace.</p></div>{admin&&<button className="primary-btn" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create business</button>}</div>
+        <div className="stat-grid"><Stat icon={<Store/>} label="Businesses" value={String(organizations.length)} hint="Available to your account"/><Stat icon={<CheckCircle2/>} label="Active businesses" value={String(organizations.filter(o=>o.status==="active").length)} hint="Currently enabled"/><Stat icon={<ShieldCheck/>} label="Platform access" value={profile?.platform_role==="developer"?"Developer":"Admin"} hint="Protected workspace"/></div>
+        <div className="platform-list-heading"><div><h3>Business workspaces</h3><p>Search and select a workspace to continue.</p></div><span className="count-pill">{visibleOrganizations.length} of {organizations.length}</span></div>
+        <div className="platform-filters"><label className="search-box"><Search size={16}/><input aria-label="Search businesses" placeholder="Search business name…" value={businessSearch} onChange={e=>setBusinessSearch(e.target.value)}/></label><div className="filter-pills" aria-label="Filter businesses">{(["all","active","suspended"] as const).map(status=><button type="button" className={businessStatus===status?"selected":""} onClick={()=>setBusinessStatus(status)}>{status==="all"?"All businesses":status==="active"?"Active":"Suspended"}</button>)}</div></div>
+        {organizations.length===0?<div className="empty-state"><div className="empty-icon"><Building2/></div><h3>No business assigned yet</h3><p>{admin?"Create the first customer business to get started.":"Ask your Raremedia administrator to add your account."}</p>{admin&&<button className="primary-btn" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create first business</button>}</div>:visibleOrganizations.length===0?<div className="empty-state"><div className="empty-icon"><Search/></div><h3>No matching businesses</h3><p>Try another search or status filter.</p><button className="secondary-btn" onClick={()=>{setBusinessSearch("");setBusinessStatus("all");}}>Clear filters</button></div>:<div className="business-grid">{visibleOrganizations.map(o=><button className="business-card" key={o.id} onClick={()=>openBusiness(o)}><div className="business-card-top">{o.logo_url?<img className="business-logo" src={o.logo_url} alt={`${o.name} logo`}/>:<div className="business-logo-placeholder"><Store/></div>}<span className={`status ${o.status}`}>{o.status}</span></div><h3>{o.name}</h3><p>{o.business_type}</p><div className="business-card-bottom"><span>{o.currency}</span><span>Open workspace <ChevronRight size={16}/></span></div></button>)}</div>}
       </section>:<section className={`content ${tab==="overview"?"dashboard-content":""}`}>
         {tab!=="overview"&&<><button className="back-link" onClick={()=>setActiveOrg(null)}><ArrowLeft size={16}/> All businesses</button>
         <div className="business-hero"><div className="hero-brand">{activeOrg.logo_url?<img src={activeOrg.logo_url}/>:<Store/>}</div><div><span className="eyebrow">BUSINESS WORKSPACE</span><h2>{activeOrg.name}</h2><p>{activeOrg.business_type} · {activeOrg.currency} · {activeOrg.address||"Address not set"}</p></div><span className={`status ${activeOrg.status}`}>{activeOrg.status}</span></div></>}
@@ -284,11 +295,65 @@ function Purchases({org,products,onDone,onMessage}:any){
  return <><ModuleHeader title="Purchases" description="Receive stock from a supplier. Stock balances update atomically."/><div className="form-panel"><h3>Receive purchase</h3><form className="stack-form" onSubmit={receive}><div className="form-grid"><label>Supplier<select value={supplier} onChange={e=>S(e.target.value)}><option value="">No supplier selected</option>{suppliers.map(s=><option value={s.id}>{s.name}</option>)}</select></label><label>Reference / invoice<input value={ref} onChange={e=>R(e.target.value)}/></label><label>Product<select required value={product} onChange={e=>P(e.target.value)}><option value="">Select product</option>{products.map((p:Product)=><option value={p.id}>{p.name}</option>)}</select></label><label>Quantity<input required type="number" min=".001" step=".001" value={qty} onChange={e=>Q(e.target.value)}/></label><label>Unit cost<input required type="number" min="0" step=".01" value={cost} onChange={e=>C(e.target.value)}/></label></div><button className="primary-btn" disabled={busy}>{busy?"Receiving…":"Receive stock"}</button></form></div></>;
 }
 function Expenses({org,onMessage}:any){
- const [rows,R]=useState<any[]>([]),[show,S]=useState(false),[f,F]=useState({title:"",category:"General",amount:"",notes:""});
- async function load(){const {data,error}=await supabase!.from("expenses").select("*").eq("organization_id",org.id).order("created_at",{ascending:false});if(error)onMessage(error.message);R(data||[]);}
- useEffect(()=>{load();},[org.id]);
- async function save(e:React.FormEvent){e.preventDefault();const {error}=await supabase!.from("expenses").insert({organization_id:org.id,title:f.title,category:f.category,amount:Number(f.amount),notes:f.notes});if(error)onMessage(error.message);else{S(false);F({title:"",category:"General",amount:"",notes:""});load();}}
- return <><ModuleHeader title="Expenses" description="Record operating expenses for this business." action={<button className="primary-btn" onClick={()=>S(true)}><Plus size={16}/> Add expense</button>}/><div className="table-wrap"><table><thead><tr><th>DESCRIPTION</th><th>CATEGORY</th><th>AMOUNT</th><th>DATE</th></tr></thead><tbody>{rows.map(r=><tr><td><b>{r.title}</b></td><td>{r.category||"—"}</td><td>{money(Number(r.amount),org.currency)}</td><td>{new Date(r.created_at).toLocaleDateString()}</td></tr>)}{!rows.length&&<tr><td colSpan={4} className="empty-cell">No expenses recorded.</td></tr>}</tbody></table></div>{show&&<Modal title="Record expense" close={()=>S(false)}><form className="stack-form" onSubmit={save}><label>Description<input required value={f.title} onChange={e=>F({...f,title:e.target.value})}/></label><label>Category<input value={f.category} onChange={e=>F({...f,category:e.target.value})}/></label><label>Amount<input required type="number" min="0.01" step=".01" value={f.amount} onChange={e=>F({...f,amount:e.target.value})}/></label><label>Notes<input value={f.notes} onChange={e=>F({...f,notes:e.target.value})}/></label><div className="modal-actions"><button type="button" className="secondary-btn" onClick={()=>S(false)}>Cancel</button><button className="primary-btn">Save expense</button></div></form></Modal>}</>;
+ const [rows,R]=useState<any[]>([]),[purchases,P]=useState<any[]>([]),[show,S]=useState(false),[loading,L]=useState(true),[error,E]=useState("");
+ const [period,T]=useState<"today"|"yesterday"|"week"|"month"|"year"|"all"|"custom">("month"),[fromDate,FD]=useState(""),[toDate,TD]=useState("");
+ const [f,F]=useState({title:"",category:"General",amount:"",notes:""});
+ async function load(){
+  if(!supabase)return;L(true);E("");
+  try{
+   const [expenseResult,purchaseResult]=await Promise.all([
+    supabase.from("expenses").select("id,title,category,amount,notes,created_by,created_at").eq("organization_id",org.id).order("created_at",{ascending:false}),
+    supabase.from("purchases").select("total,status,created_at").eq("organization_id",org.id).order("created_at",{ascending:false})
+   ]);
+   if(expenseResult.error)throw expenseResult.error;if(purchaseResult.error)throw purchaseResult.error;
+   R(expenseResult.data||[]);P(purchaseResult.data||[]);
+  }catch(cause){const detail=databaseErrorMessage(cause);E(detail);onMessage(`Expenses could not be loaded: ${detail}`);}
+  finally{L(false);}
+ }
+ useEffect(()=>{void load();},[org.id]);
+ const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ let rangeStart:Date|null=null,rangeEnd:Date|null=null;
+ if(period==="today"){rangeStart=todayStart;rangeEnd=new Date(todayStart.getTime()+86400000);}
+ if(period==="yesterday"){rangeEnd=todayStart;rangeStart=new Date(todayStart.getTime()-86400000);}
+ if(period==="week"){const mondayOffset=(todayStart.getDay()+6)%7;rangeStart=new Date(todayStart.getTime()-mondayOffset*86400000);}
+ if(period==="month")rangeStart=new Date(now.getFullYear(),now.getMonth(),1);
+ if(period==="year")rangeStart=new Date(now.getFullYear(),0,1);
+ if(period==="custom"){rangeStart=fromDate?new Date(`${fromDate}T00:00:00`):null;rangeEnd=toDate?new Date(new Date(`${toDate}T00:00:00`).getTime()+86400000):null;}
+ const inRange=(value:string)=>{const date=new Date(value);return (!rangeStart||date>=rangeStart)&&(!rangeEnd||date<rangeEnd);};
+ const filtered=rows.filter(row=>inRange(row.created_at));
+ const filteredPurchases=purchases.filter(row=>row.status==="received"&&inRange(row.created_at));
+ const expenseTotal=filtered.reduce((sum,row)=>sum+Number(row.amount),0);
+ const purchaseTotal=filteredPurchases.reduce((sum,row)=>sum+Number(row.total),0);
+ const categories=Object.entries(filtered.reduce((totals:Record<string,number>,row:any)=>{const category=row.category?.trim()||"General";totals[category]=(totals[category]||0)+Number(row.amount);return totals;},{})).sort((a,b)=>b[1]-a[1]);
+ const periodLabel=({today:"Today",yesterday:"Yesterday",week:"This week",month:"This month",year:"This year",all:"All time",custom:"Selected dates"} as const)[period];
+ async function save(e:React.FormEvent){
+  e.preventDefault();if(!supabase)return;
+  const {error}=await supabase.from("expenses").insert({organization_id:org.id,title:f.title,category:f.category,amount:Number(f.amount),notes:f.notes});
+  if(error)onMessage(databaseErrorMessage(error));else{S(false);F({title:"",category:"General",amount:"",notes:""});await load();}
+ }
+ function exportCsv(){
+  const values=[["Date","Category","Description","Notes","Amount"],...filtered.map(row=>[new Date(row.created_at).toLocaleString(),row.category||"General",row.title,row.notes||"",String(row.amount)])];
+  const csv=values.map(line=>line.map(value=>`"${String(value).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const link=document.createElement("a");link.href=url;link.download=`${org.name.replace(/[^a-z0-9-]/gi,"-")}-expenses.csv`;link.click();URL.revokeObjectURL(url);
+ }
+ const ranges:[typeof period,string][]=[["today","Today"],["yesterday","Yesterday"],["week","This week"],["month","This month"],["year","This year"],["all","All time"],["custom","Choose dates"]];
+ return <div className="expense-page">
+  <div className="expense-heading"><div><span className="eyebrow">{org.name.toUpperCase()} / FINANCE</span><h2>Expenses</h2><p>{periodLabel}</p></div><div className="expense-actions"><button className="secondary-btn" onClick={exportCsv} disabled={loading}><FileText size={15}/> CSV</button><button className="primary-btn" onClick={()=>S(true)}><Plus size={16}/> Add expense</button></div></div>
+  <div className="expense-toolbar"><div className="expense-range">{ranges.map(([key,label])=><button type="button" className={period===key?"selected":""} onClick={()=>T(key)}>{label}</button>)}</div>{period==="custom"&&<div className="expense-custom-range"><label>From<input type="date" value={fromDate} onChange={e=>FD(e.target.value)}/></label><label>To<input type="date" value={toDate} onChange={e=>TD(e.target.value)}/></label></div>}</div>
+  {error&&<div className="dashboard-error"><span>{error}</span><button onClick={()=>void load()}>Retry</button></div>}
+  <div className="expense-summary">
+   <div className="expense-stat expense-red"><Wallet/><div><strong>{loading?"—":money(expenseTotal,org.currency)}</strong><b>Operating expenses</b><small>Excludes stock purchases</small></div></div>
+   <div className="expense-stat expense-navy"><Boxes/><div><strong>{loading?"—":money(purchaseTotal,org.currency)}</strong><b>Stock purchases</b><small>Received from Purchases</small></div></div>
+   <div className="expense-stat expense-slate"><ClipboardList/><div><strong>{loading?"—":String(filtered.length)}</strong><b>Entries</b><small>{periodLabel}</small></div></div>
+   <div className="expense-stat expense-blue"><BarChart3/><div><strong>{categories[0]?.[0]||"—"}</strong><b>Largest category</b><small>{categories[0]?money(categories[0][1],org.currency):"No expenses in this period"}</small></div></div>
+  </div>
+  <div className="expense-details">
+   <section className="expense-category-panel"><h3>By category</h3>{!categories.length?<p className="expense-empty">{loading?"Loading expenses…":"No expenses in this period."}</p>:<div className="expense-category-list">{categories.map(([category,amount])=><div className="expense-category-row"><div><b>{category}</b><span>{money(amount,org.currency)}</span></div><div className="expense-category-track"><span style={{width:`${Math.max(4,amount/categories[0][1]*100)}%`}}/></div></div>)}</div>}</section>
+   <section className="expense-table-panel"><div className="expense-table-title"><h3>Expense entries</h3><span>{filtered.length} records</span></div><div className="table-wrap"><table><thead><tr><th>DATE</th><th>CATEGORY</th><th>DESCRIPTION</th><th>BY</th><th>AMOUNT</th></tr></thead><tbody>{filtered.map(row=><tr><td>{new Date(row.created_at).toLocaleDateString()}</td><td>{row.category||"General"}</td><td>{row.title}</td><td>Business team</td><td><b>{money(Number(row.amount),org.currency)}</b></td></tr>)}{!filtered.length&&<tr><td colSpan={5} className="empty-cell">{loading?"Loading expenses…":error?"Expenses unavailable. Retry to try again.":"No expenses in this period."}</td></tr>}</tbody></table></div></section>
+  </div>
+  {show&&<Modal title="Record expense" close={()=>S(false)}><form className="stack-form" onSubmit={save}><label>Description<input required value={f.title} onChange={e=>F({...f,title:e.target.value})}/></label><label>Category<select value={f.category} onChange={e=>F({...f,category:e.target.value})}>{["General","Food & ingredients","Utilities","Rent","Transport","Supplies","Staff","Maintenance","Other"].map(category=><option key={category}>{category}</option>)}</select></label><label>Amount<input required type="number" min="0.01" step=".01" value={f.amount} onChange={e=>F({...f,amount:e.target.value})}/></label><label>Notes<input value={f.notes} onChange={e=>F({...f,notes:e.target.value})}/></label><div className="modal-actions"><button type="button" className="secondary-btn" onClick={()=>S(false)}>Cancel</button><button className="primary-btn">Save expense</button></div></form></Modal>}
+ </div>;
 }
 function Tables({org,onMessage}:any){
  const [rows,R]=useState<any[]>([]),[name,N]=useState("");
