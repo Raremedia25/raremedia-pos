@@ -13,6 +13,7 @@ export type Organization = {
   currency: string;
   logo_url: string | null;
   status: "active" | "suspended";
+  membership_role?: "owner" | "admin" | "cashier" | "accountant" | "stock_manager" | "waiter" | "auditor";
 };
 
 export type Product = {

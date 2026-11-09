@@ -36,15 +36,16 @@ function App() {
         setMessage("Your POS profile is missing. Run the latest database migration in Supabase, then set your platform role again.");
         return;
       }
-      const {data:memberships,error:membershipError}=await supabase.from("organization_users").select("organization_id").eq("user_id",authSession.user.id).eq("is_active",true);
+      const {data:memberships,error:membershipError}=await supabase.from("organization_users").select("organization_id,role").eq("user_id",authSession.user.id).eq("is_active",true);
       if(request!==identityRequest.current)return;
       if(membershipError)throw membershipError;
       let rows:Organization[]=[];
+      const membershipRoles=new Map((memberships||[]).map(row=>[row.organization_id,row.role as Organization["membership_role"]]));
       if(memberships?.length){
         const ids=memberships.map(row=>row.organization_id);
         const {data,error}=await supabase.from("organizations").select("id,name,business_type,phone,address,currency,logo_url,status").in("id",ids).order("created_at",{ascending:false});
         if(error)throw error;
-        rows=(data||[]) as Organization[];
+        rows=(data||[]).map(row=>({...row,membership_role:membershipRoles.get(row.id)})) as Organization[];
       }else if(p.platform_role==="platform_admin"||p.platform_role==="developer"){
         const {data,error}=await supabase.from("organizations").select("id,name,business_type,phone,address,currency,logo_url,status").order("created_at",{ascending:false});
         if(error)throw error;
@@ -100,7 +101,7 @@ function App() {
           <button className="side-link kitchen-link" type="button" disabled title="Kitchen order workflow is not available yet"><Flame/><span>Kitchen</span></button>
           <Nav tab={tab} set={setTab} value="expenses" icon={<Wallet/>}>Expenses</Nav>
           <Nav tab={tab} set={setTab} value="reports" icon={<BarChart3/>}>Reports</Nav>
-          <Nav tab={tab} set={setTab} value="team" icon={<Users/>}>Employees</Nav>
+          {(admin||activeOrg.membership_role==="owner"||activeOrg.membership_role==="admin")&&<Nav tab={tab} set={setTab} value="team" icon={<Users/>}>Employees</Nav>}
           <button className="side-link" type="button" disabled title="Business settings are not available yet"><Settings/><span>Settings</span></button>
         </nav>
       </>:<><div className="side-label">PLATFORM</div><button className="side-link active" onClick={()=>setActiveOrg(null)}><Building2 size={18}/> Businesses</button></>}
@@ -126,7 +127,7 @@ function App() {
         {tab==="expenses"&&<Expenses org={activeOrg} onMessage={setMessage}/>}
         {tab==="tables"&&<Tables org={activeOrg} onMessage={setMessage}/>}
         {tab==="reports"&&<Reports org={activeOrg} onMessage={setMessage}/>}
-        {tab==="team"&&<Team org={activeOrg} onMessage={setMessage}/>}
+        {tab==="team"&&<Team org={activeOrg} canManage={admin||activeOrg.membership_role==="owner"||activeOrg.membership_role==="admin"} canAssignAdmin={admin||activeOrg.membership_role==="owner"} onMessage={setMessage}/>}
       </section>}
     </main>
     {showCreate&&<CreateBusinessModal onClose={()=>setShowCreate(false)} onCreated={async()=>{setShowCreate(false);await reloadIdentity();}} onMessage={setMessage}/>}
@@ -363,12 +364,69 @@ function Reports({org,onMessage}:any){
  const completed=sales.filter(x=>x.status==="completed"),revenue=completed.reduce((a,x)=>a+Number(x.total),0),out=expenses.reduce((a,x)=>a+Number(x.amount),0);
  return <>{error&&<div className="dashboard-error"><span>{error}</span><button onClick={()=>window.location.reload()}>Reload</button></div>}<div className="report-print"><BusinessPrintBrand org={org}/><ModuleHeader title="Business reports" description="Summary of the latest 500 sales and expenses for this business." action={<button className="secondary-btn" onClick={()=>window.print()}><Printer size={15}/> Print report</button>}/><div className="stat-grid"><Stat icon={<CircleDollarSign/>} label="Sales (latest 500)" value={loading||error?"—":money(revenue,org.currency)} hint={`${completed.length} completed sales`}/><Stat icon={<Wallet/>} label="Expenses (latest 500)" value={loading||error?"—":money(out,org.currency)} hint={`${expenses.length} recorded expenses`}/><Stat icon={<BarChart3/>} label="Net (latest 500)" value={loading||error?"—":money(revenue-out,org.currency)} hint="Sales less recorded expenses"/></div><ModuleHeader title="Recent sales" description="Latest 500 transactions."/><div className="table-wrap"><table><thead><tr><th>RECEIPT</th><th>DATE</th><th>STATUS</th><th>TOTAL</th></tr></thead><tbody>{sales.map(s=><tr><td>{s.receipt_number||"—"}</td><td>{new Date(s.created_at).toLocaleString()}</td><td>{s.status}</td><td>{money(Number(s.total),org.currency)}</td></tr>)}{!sales.length&&<tr><td colSpan={4} className="empty-cell">{loading?"Loading sales…":error?"Sales unavailable. Reload to try again.":"No sales yet."}</td></tr>}</tbody></table></div></div></>;
 }
-function Team({org,onMessage}:any){
- const [rows,R]=useState<any[]>([]);
- async function load(){const {data,error}=await supabase!.from("organization_users").select("id,user_id,role,is_active,created_at").eq("organization_id",org.id);if(error)onMessage(error.message);R(data||[]);}
- useEffect(()=>{load();},[org.id]);
- async function toggle(row:any){const {error}=await supabase!.from("organization_users").update({is_active:!row.is_active}).eq("id",row.id).eq("organization_id",org.id);if(error)onMessage(error.message);else load();}
- return <><ModuleHeader title="Team & access" description="Review the users attached to this business. Invite and role editing should be performed by a platform owner workflow."/><div className="table-wrap"><table><thead><tr><th>USER ID</th><th>ROLE</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>{rows.map(r=><tr><td>{r.user_id}</td><td>{r.role}</td><td>{r.is_active?"Active":"Disabled"}</td><td><button className="secondary-btn" onClick={()=>toggle(r)}>{r.is_active?"Disable":"Enable"}</button></td></tr>)}</tbody></table></div></>;
+type TeamRole="admin"|"cashier"|"accountant"|"stock_manager"|"waiter"|"auditor";
+type TeamMember={id:string;user_id:string;full_name:string|null;email:string|null;role:TeamRole|"owner";is_active:boolean;created_at:string};
+const teamRoles:TeamRole[]=["admin","cashier","accountant","stock_manager","waiter","auditor"];
+async function teamFunctionError(error:{message:string;context?:unknown}|null){
+ if(!error)return "";
+ if(error.context instanceof Response){
+  try{const body=await error.context.clone().json() as {error?:unknown};if(typeof body.error==="string")return body.error;}catch{}
+ }
+ return error.message;
+}
+function Team({org,canManage,canAssignAdmin,onMessage}:{org:Organization;canManage:boolean;canAssignAdmin:boolean;onMessage:(message:string)=>void}){
+ const [rows,setRows]=useState<TeamMember[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState("");
+ const [showInvite,setShowInvite]=useState(false),[saving,setSaving]=useState(false),[busyId,setBusyId]=useState("");
+ const [fullName,setFullName]=useState(""),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[confirmPassword,setConfirmPassword]=useState(""),[role,setRole]=useState<TeamRole>("cashier");
+ async function load(){
+  if(!supabase)return;
+  setLoading(true);setError("");
+  const {data,error:invokeError}=await supabase.functions.invoke("manage-team",{body:{action:"list",organization_id:org.id}});
+  if(invokeError){setError(await teamFunctionError(invokeError));setLoading(false);return;}
+  if(data?.error){setError(data.error);setLoading(false);return;}
+  setRows((data?.members||[]) as TeamMember[]);setLoading(false);
+ }
+ useEffect(()=>{void load();},[org.id]);
+ async function invite(e:React.FormEvent){
+  e.preventDefault();
+  if(password.length<8){setError("Use a password with at least 8 characters.");return;}
+  if(password!==confirmPassword){setError("The password confirmation does not match.");return;}
+  setSaving(true);setError("");
+  const {data,error:invokeError}=await supabase!.functions.invoke("manage-team",{body:{action:"invite",organization_id:org.id,full_name:fullName,email,password,role}});
+  if(invokeError||data?.error){setError(data?.error||await teamFunctionError(invokeError)||"Could not add this team member.");setSaving(false);return;}
+  setShowInvite(false);setFullName("");setEmail("");setPassword("");setConfirmPassword("");setRole("cashier");setSaving(false);
+  onMessage(data.invited?"Invitation email sent. Share the initial password securely, not by email.":"Existing account added to this business; their password was not changed.");
+  await load();
+ }
+ async function updateMember(member:TeamMember,changes:{role?:TeamRole;is_active?:boolean}){
+  setBusyId(member.id);setError("");
+  const {data,error:invokeError}=await supabase!.functions.invoke("manage-team",{body:{action:"update",organization_id:org.id,member_id:member.id,...changes}});
+  if(invokeError||data?.error){setError(data?.error||await teamFunctionError(invokeError)||"Could not update this team member.");setBusyId("");return;}
+  await load();setBusyId("");
+ }
+ return <><ModuleHeader title="Team & access" description="Invite workers, assign business roles, and manage their access." action={canManage?<button className="primary-btn" onClick={()=>setShowInvite(true)}><Plus size={16}/> Add worker</button>:undefined}/>
+  {error&&<div className="error-box team-error">{error}</div>}
+  <div className="table-wrap"><table><thead><tr><th>TEAM MEMBER</th><th>ROLE</th><th>STATUS</th>{canManage&&<th>ACTION</th>}</tr></thead><tbody>
+   {rows.map(member=><tr key={member.id}><td><b>{member.full_name||member.email||"Team member"}</b>{member.email&&member.full_name&&<small className="team-email">{member.email}</small>}</td>
+    <td>{canManage&&member.role!=="owner"?<select className="team-role-select" aria-label={`Role for ${member.email||member.user_id}`} value={member.role} disabled={busyId===member.id} onChange={event=>void updateMember(member,{role:event.target.value as TeamRole})}>{teamRoles.filter(option=>option!=="admin"||canAssignAdmin).map(option=><option key={option} value={option}>{option.replace("_"," ")}</option>)}</select>:member.role.replace("_"," ")}</td>
+    <td><span className={`status ${member.is_active?"active":"suspended"}`}>{member.is_active?"Active":"Disabled"}</span></td>
+    {canManage&&<td>{member.role==="owner"?<span className="muted">Business owner</span>:<button className="secondary-btn" disabled={busyId===member.id} onClick={()=>void updateMember(member,{is_active:!member.is_active})}>{member.is_active?"Disable":"Enable"}</button>}</td>}
+   </tr>)}
+   {!rows.length&&<tr><td colSpan={canManage?4:3} className="empty-cell">{loading?"Loading team…":error?"Team could not be loaded.":"No team members found."}</td></tr>}
+  </tbody></table></div>
+  {showInvite&&<Modal title="Add a team member" close={()=>!saving&&setShowInvite(false)}><form className="stack-form" onSubmit={invite}>
+   <div className="form-grid">
+    <label>Full name<input required autoComplete="name" value={fullName} onChange={event=>setFullName(event.target.value)} placeholder="Worker name"/></label>
+    <label>Email address<input required type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="name@example.com"/></label>
+    <label>Initial password<input required type="password" autoComplete="new-password" minLength={8} value={password} onChange={event=>setPassword(event.target.value)} placeholder="At least 8 characters"/></label>
+    <label>Confirm password<input required type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={event=>setConfirmPassword(event.target.value)} placeholder="Re-enter password"/></label>
+    <label className="wide">Business role<select value={role} onChange={event=>setRole(event.target.value as TeamRole)}>{teamRoles.filter(option=>option!=="admin"||canAssignAdmin).map(option=><option key={option} value={option}>{option.replace("_"," ")}</option>)}</select></label>
+   </div>
+   <p className="team-invite-note">New workers receive an invitation email. Share their initial password securely; it is never emailed. Existing accounts keep their current password.</p>
+   {error&&<div className="error-box">{error}</div>}
+   <div className="modal-actions"><button type="button" className="secondary-btn" disabled={saving} onClick={()=>setShowInvite(false)}>Cancel</button><button type="submit" className="primary-btn" disabled={saving}>{saving?"Adding…":"Add worker"}</button></div>
+  </form></Modal>}
+ </>;
 }
 function Modal({title,close,children}:any){return <div className="modal-backdrop"><div className="modal-card small-modal"><div className="modal-header"><div><span className="eyebrow">RAREMEDIA POS</span><h2>{title}</h2></div><button className="icon-btn" onClick={close}><X/></button></div>{children}</div></div>}
 export default App;

@@ -46,19 +46,20 @@ Never place the Supabase `service_role` key in `.env` or frontend code.
 ## 3. Set up Supabase
 
 1. Open your Supabase project and open SQL Editor.
-2. Run the SQL files in `supabase/migrations` in numeric order: `0001`, `0002`, `0003`, then `0004`.
-   Migration `0003` backfills profiles for existing Auth users and secures inventory and transaction writes behind atomic database functions. Migration `0004` adds the full-access developer role.
+2. Run the SQL files in `supabase/migrations` in numeric order: `0001` through `0005`.
+   Migration `0003` backfills profiles for existing Auth users and secures inventory and transaction writes behind atomic database functions. Migration `0004` adds the full-access developer role. Migration `0005` reserves direct membership edits for platform administrators; business team changes go through the checked `manage-team` Edge Function.
 3. Deploy the Edge Function:
 
 ```bash
 npx supabase login
 npx supabase link --project-ref YOUR_PROJECT_REF
 npx supabase functions deploy create-business
+npx supabase functions deploy manage-team
 ```
 
 The Supabase CLI will deploy the function with JWT verification disabled because the function validates the bearer token itself. Do not remove its `auth.getUser()` and platform-role checks.
 
-The Edge Function uses the Supabase-managed `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` environment variables. Do not expose the service role key to the browser.
+The Edge Functions use the Supabase-managed `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` environment variables. Do not expose the service role key to the browser. `manage-team` lets active business owners and admins invite workers, edit permitted roles, and enable or disable access. Only owners can grant the admin role; business-owner access cannot be changed from the team screen. New workers receive an invitation email and the owner sets their temporary password; existing accounts are linked without changing their credentials.
 
 For owner invitation emails to reach customers, configure a production SMTP provider in Supabase Dashboard → Authentication → SMTP Settings, and set Authentication → URL Configuration → Site URL to the deployed POS URL. New owner accounts receive an invitation email automatically; the password is never included in the email. Existing owner accounts are linked without changing their password or sending a duplicate invite.
 
