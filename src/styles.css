@@ -2,7 +2,7 @@
 :root{font-family:'DM Sans',sans-serif;color:#172033;background:#f5f7fb;font-synthesis:none;text-rendering:optimizeLegibility;font-weight:400}
 *{box-sizing:border-box}body{margin:0;min-width:320px}button,input,select{font:inherit}button{cursor:pointer}
 .app-shell{min-height:100vh;display:flex}.sidebar{width:250px;background:#101a2d;color:#d7deeb;display:flex;flex-direction:column;padding:25px 16px;position:fixed;inset:0 auto 0 0;z-index:5;overflow-y:auto;overscroll-behavior:contain}.sidebar>*{flex-shrink:0}
-.brand{display:flex;align-items:center;gap:11px;padding:0 8px 35px;color:#fff}.brand-mark{width:39px;height:39px;border-radius:12px;background:#f5b82e;color:#111827;display:grid;place-items:center;font:800 24px Manrope}.brand-mark.large{width:54px;height:54px;font-size:32px}.brand b{display:block;font:800 14px Manrope;letter-spacing:1.2px}.brand span{display:block;font-size:9px;letter-spacing:2px;color:#9eabc1;margin-top:3px}
+.brand{display:flex;align-items:center;gap:11px;padding:0 8px 35px;color:#fff}.brand-logo{width:39px;height:39px;display:block;flex:none;object-fit:contain;filter:drop-shadow(0 3px 7px #0003)}.brand-logo.large{width:58px;height:58px;margin-bottom:20px}.brand b{display:block;font:800 14px Manrope;letter-spacing:1.2px}.brand span{display:block;font-size:9px;letter-spacing:2px;color:#9eabc1;margin-top:3px}
 .side-label{font-size:9px;letter-spacing:1.7px;color:#71809a;font-weight:700;padding:12px 12px 8px}.side-link{border:0;background:transparent;color:#b9c4d6;display:flex;align-items:center;gap:12px;padding:12px;border-radius:9px;width:100%;text-align:left;font-size:13px;margin:2px 0}.side-link:hover,.side-link.active{background:#1f2d45;color:#fff}.side-link.active svg{color:#f5b82e}.sidebar-bottom{margin-top:auto}.user-mini{display:flex;align-items:center;gap:10px;padding:15px 7px;border-top:1px solid #29354a;margin-bottom:8px}.user-mini b,.user-mini span{display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.user-mini b{font-size:11px;color:#fff}.user-mini span{font-size:10px;color:#8d9ab0;margin-top:3px}.avatar{width:34px;height:34px;border-radius:50%;background:#263650;color:#f5c34d;display:grid;place-items:center;font-weight:700;font-size:13px}
 .main-area{margin-left:250px;width:calc(100% - 250px);min-height:100vh}.topbar{height:95px;background:#fff;border-bottom:1px solid #e8edf4;padding:0 38px;display:flex;align-items:center;justify-content:space-between}.eyebrow{font-size:9px;letter-spacing:1.6px;font-weight:700;color:#8b96a8}.topbar h1{font:700 20px Manrope;margin:6px 0 0}.top-actions{display:flex;align-items:center;gap:20px}.secure{font-size:11px;color:#64748b;display:flex;align-items:center;gap:6px}.secure svg{color:#16a36a}
 .content{padding:30px 38px 60px;max-width:1500px;margin:auto}.welcome-row,.section-heading{display:flex;justify-content:space-between;align-items:center;gap:20px}.welcome-row h2,.section-heading h3{font:700 20px Manrope;margin:0}.welcome-row p,.section-heading p{color:#7a8799;font-size:12px;margin:7px 0 0}.primary-btn,.secondary-btn{border:0;border-radius:8px;padding:11px 16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:12px;transition:.15s}.primary-btn{background:#245ce5;color:#fff;box-shadow:0 4px 10px #245ce522}.primary-btn:hover{background:#174bd0}.primary-btn:disabled{opacity:.6;cursor:wait}.secondary-btn{background:#edf1f7;color:#344054}.full{width:100%;margin-top:8px}
@@ -36,7 +36,7 @@
 .business-shell .sidebar{width:220px;padding:16px 12px 12px;align-items:stretch;background:linear-gradient(180deg,#10264a,#0d1d39);overflow-y:auto;overscroll-behavior:contain}
 .business-shell .main-area{margin-left:220px;width:calc(100% - 220px)}
 .business-shell .brand{padding:0 7px 18px;gap:9px}
-.business-shell .brand-mark{width:34px;height:34px;border-radius:10px;font-size:20px}
+.business-shell .brand-logo{width:34px;height:34px}
 .business-shell .brand b{font-size:12px;letter-spacing:.6px}
 .business-shell .brand span{font-size:7px;letter-spacing:.9px}
 .business-shell .business-rail-brand{display:flex;min-width:0;flex-direction:column;align-items:center;gap:8px;padding:2px 6px 17px;color:#fff;text-align:center}
@@ -123,3 +123,5 @@
 .team-role-select:disabled{opacity:.6}
 .team-invite-note{font-size:10px;color:#718096;line-height:1.6;margin:0}
 .team-error{margin:0 0 14px}
+.mobile-login-brand{display:none}
+@media(max-width:720px){.mobile-login-brand{display:flex;align-items:center;gap:10px;margin-bottom:26px;color:#14233b}.mobile-login-brand img{width:42px;height:42px}.mobile-login-brand b{font:800 13px Manrope;letter-spacing:1px}}
