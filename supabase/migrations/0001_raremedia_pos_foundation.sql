@@ -184,6 +184,11 @@ create trigger on_auth_user_created_raremedia
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
+insert into public.profiles(id, full_name)
+select u.id, coalesce(u.raw_user_meta_data->>'full_name', split_part(u.email, '@', 1))
+from auth.users u
+on conflict (id) do nothing;
+
 create or replace function public.is_platform_admin()
 returns boolean language sql stable security definer set search_path = public
 as $$
@@ -414,3 +419,5 @@ using (bucket_id='business-logos');
 
 grant execute on function public.seed_demo_data(uuid) to authenticated, service_role;
 grant execute on function public.bootstrap_organization(text,text,text,text,text,uuid,boolean) to service_role, authenticated;
+revoke all on function public.seed_demo_data(uuid) from public, anon;
+revoke all on function public.bootstrap_organization(text,text,text,text,text,uuid,boolean) from public, anon;

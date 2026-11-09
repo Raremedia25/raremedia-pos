@@ -22,5 +22,6 @@ export type Product = {
   selling_price: number;
   cost_price: number;
   stock_quantity: number;
+  low_stock_threshold: number;
   is_active: boolean;
 };

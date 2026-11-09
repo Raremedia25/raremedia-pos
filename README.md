@@ -18,7 +18,7 @@ A new multi-business POS foundation for Web, Windows Desktop and Android.
 - Electron Windows shell.
 - Capacitor Android configuration.
 
-This is the secure foundation and first working application slice. POS checkout, receipt rendering/printing, purchasing workflows, accounting reports, offline queue/sync, and full role-permission screens are subsequent implementation modules; they are not represented as completed in this version.
+This is the secure foundation and first working application slice. It includes basic POS checkout and browser receipt printing, product and stock management, single-item purchase receiving, expenses, tables, and a basic transaction summary. Full accounting reports, multi-item purchasing, offline queue/sync, and complete role-permission screens are not implemented in this version.
 
 ## 1. Requirements
 
@@ -45,10 +45,10 @@ Never place the Supabase `service_role` key in `.env` or frontend code.
 
 ## 3. Set up Supabase
 
-1. Open your Supabase project.
-2. Open SQL Editor.
-3. Run `supabase/migrations/0001_raremedia_pos_foundation.sql`.
-4. Deploy the Edge Function:
+1. Open your Supabase project and open SQL Editor.
+2. Run the SQL files in `supabase/migrations` in numeric order: `0001`, `0002`, then `0003`.
+   Migration `0003` backfills profiles for existing Auth users and secures inventory and transaction writes behind atomic database functions.
+3. Deploy the Edge Function:
 
 ```bash
 npx supabase login
@@ -72,8 +72,10 @@ set platform_role = 'platform_admin'
 where id = 'YOUR_AUTH_USER_UUID';
 ```
 
-3. Sign in to RAREMEDIA POS with that user.
-4. The Business Management page should load. Use **Create business** to create customer businesses.
+4. Sign in to RAREMEDIA POS with that user.
+5. The Business Management page should load. Use **Create business** to create customer businesses.
+
+After promoting an existing user, verify the SQL editor reports one updated row. If it reports zero rows, run migrations `0001` and `0003` and retry; `0003` backfills missing profile rows.
 
 Do not give platform-admin access to customers.
 
@@ -152,7 +154,7 @@ The root `render.yaml` defines a Render static site that builds from the `main` 
 2. Set `VITE_SUPABASE_URL` to your Supabase project URL and `VITE_SUPABASE_ANON_KEY` to its publishable key when prompted.
 3. Create the Blueprint. Render will build the site and provide its public `onrender.com` URL.
 
-The site uses a client-side route rewrite to `index.html`. Do not set a service-role or `sb_secret_` key in Render's frontend environment variables. Apply the Supabase database migrations and deploy the Edge Function separately as described above.
+The site uses a client-side route rewrite to `index.html`. Do not set a service-role or `sb_secret_` key in Render's frontend environment variables. Apply all Supabase database migrations and deploy the Edge Function separately as described above. A successful website deploy alone does not deploy database migrations or Edge Functions. Verify the `create-business` function is deployed; a missing function returns HTTP 404 and the POS cannot create businesses.
 
 ## Important production hardening before public launch
 
