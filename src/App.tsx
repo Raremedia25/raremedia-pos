@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Activity, ArrowLeft, Building2, CheckCircle2, ChevronRight, ChevronDown, CircleDollarSign,
+  Activity, ArrowLeft, Building2, CheckCircle2, ChevronRight, CircleDollarSign,
   ClipboardList, Coffee, ImagePlus, LogOut, Package, Plus, Search, ShieldCheck,
   ShoppingCart, Store, Users, X, Truck, Wallet, BarChart3, Table2, RefreshCw,
   House, Flame, Settings,
@@ -19,7 +19,7 @@ function App() {
   const [products,setProducts]=useState<Product[]>([]),[loading,setLoading]=useState(true),[message,setMessage]=useState("");
   const [loginEmail,setLoginEmail]=useState(""),[loginPassword,setLoginPassword]=useState("");
   const [showCreate,setShowCreate]=useState(false),[tab,setTab]=useState<Tab>("overview"),[refresh,setRefresh]=useState(0);
-  const [managementOpen,setManagementOpen]=useState(false),[businessSearch,setBusinessSearch]=useState(""),[businessStatus,setBusinessStatus]=useState<"all"|"active"|"suspended">("all");
+  const [businessSearch,setBusinessSearch]=useState(""),[businessStatus,setBusinessStatus]=useState<"all"|"active"|"suspended">("all");
   const identityRequest=useRef(0);
   async function loadIdentity(authSession:Session|null){
     const request=++identityRequest.current;
@@ -82,37 +82,31 @@ function App() {
   if(loading)return <div className="loading-screen"><div className="loader"/>Loading RAREMEDIA POS…</div>;
   if(!session)return <LoginScreen email={loginEmail} password={loginPassword} setEmail={setLoginEmail} setPassword={setLoginPassword} onSubmit={signIn} message={message}/>;
   const admin=profile?.platform_role==="platform_admin"||profile?.platform_role==="developer";
-  const managementActive=["products","purchases","customers","suppliers","tables","expenses","team"].includes(tab);
   const visibleOrganizations=organizations.filter(org=>(businessStatus==="all"||org.status===businessStatus)&&org.name.toLowerCase().includes(businessSearch.trim().toLowerCase()));
   const openBusiness=(o:Organization)=>{setActiveOrg(o);setTab("overview");};
   return <div className={`app-shell ${activeOrg?"business-shell":""}`}>
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark">R</div><div><b>RAREMEDIA POS</b><span>SMART BUSINESS. BETTER CONTROL.</span></div></div>
-      {activeOrg?<><div className="business-rail-brand" title={activeOrg.name}>{activeOrg.logo_url?<img src={activeOrg.logo_url} alt={`${activeOrg.name} logo`}/>:<span><Store size={21}/></span>}</div>
+      {activeOrg?<><div className="business-rail-brand" title={activeOrg.name}>{activeOrg.logo_url?<img src={activeOrg.logo_url} alt={`${activeOrg.name} logo`}/>:<span><Store size={21}/></span>}<b>{activeOrg.name}</b></div>
         <nav className="business-primary-nav" aria-label="Business navigation">
-          <Nav tab={tab} set={setTab} value="overview" icon={<House/>}>Home</Nav>
-          <Nav tab={tab} set={setTab} value="pos" icon={<ShoppingCart/>}>Sales</Nav>
-          <button className="side-link kitchen-link" type="button" disabled title="Kitchen order workflow is not available yet"><Flame/><span>Kitchen</span></button>
-          <Nav tab={tab} set={setTab} value="stock" icon={<Boxes/>}>Stock</Nav>
-          <Nav tab={tab} set={setTab} value="reports" icon={<BarChart3/>}>Reports</Nav>
-          <button className={`side-link management-toggle ${managementActive?"active":""}`} type="button" aria-expanded={managementOpen||managementActive} onClick={()=>setManagementOpen(open=>!open)}><Settings/><span>Management</span><ChevronDown className="management-chevron"/></button>
-        </nav>
-        {(managementOpen||managementActive)&&<div className="sidebar-subnav" aria-label="Management tools">
+          <Nav tab={tab} set={setTab} value="overview" icon={<House/>}>Dashboard</Nav>
+          <Nav tab={tab} set={setTab} value="pos" icon={<ShoppingCart/>}>POS</Nav>
           <Nav tab={tab} set={setTab} value="products" icon={<Package/>}>Products</Nav>
+          <Nav tab={tab} set={setTab} value="stock" icon={<Boxes/>}>Inventory</Nav>
           <Nav tab={tab} set={setTab} value="purchases" icon={<ClipboardList/>}>Purchases</Nav>
           <Nav tab={tab} set={setTab} value="customers" icon={<Users/>}>Customers</Nav>
           <Nav tab={tab} set={setTab} value="suppliers" icon={<Truck/>}>Suppliers</Nav>
           <Nav tab={tab} set={setTab} value="tables" icon={<Table2/>}>Tables</Nav>
+          <button className="side-link kitchen-link" type="button" disabled title="Kitchen order workflow is not available yet"><Flame/><span>Kitchen</span></button>
           <Nav tab={tab} set={setTab} value="expenses" icon={<Wallet/>}>Expenses</Nav>
-          <Nav tab={tab} set={setTab} value="team" icon={<Users/>}>Team</Nav>
-        </div>}
-        <button className="business-switch" onClick={()=>setActiveOrg(null)} title="Switch business">
-          <ChevronRight size={16}/><span><b>Switch business</b></span>
-        </button>
+          <Nav tab={tab} set={setTab} value="reports" icon={<BarChart3/>}>Reports</Nav>
+          <Nav tab={tab} set={setTab} value="team" icon={<Users/>}>Employees</Nav>
+          <button className="side-link" type="button" disabled title="Business settings are not available yet"><Settings/><span>Settings</span></button>
+        </nav>
       </>:<><div className="side-label">PLATFORM</div><button className="side-link active" onClick={()=>setActiveOrg(null)}><Building2 size={18}/> Businesses</button></>}
       <div className="sidebar-bottom"><div className="user-mini"><div className="avatar">{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div><div><b>{profile?.full_name||"RAREMEDIA User"}</b><span>{profile?.platform_role==="developer"?"Developer":admin?"Super Admin":session.user.email}</span></div></div><button className="side-link" onClick={signOut}><LogOut size={18}/> Sign out</button></div>
     </aside>
-    <main className="main-area"><header className="topbar"><div><span className="eyebrow">RAREMEDIA POS / {activeOrg?activeOrg.name:"PLATFORM"}</span><h1>{activeOrg?tabLabel(tab):"Business management"}</h1></div><div className="top-actions">{activeOrg&&<button className="top-business-switch" onClick={()=>setActiveOrg(null)}><Store size={15}/><span>{activeOrg.name}</span><ChevronRight size={14}/></button>}<span className="secure"><ShieldCheck size={15}/> Secure workspace</span><div className="avatar" title={profile?.full_name||session.user.email}>{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div></div></header>
+    <main className="main-area"><header className="topbar"><div><span className="eyebrow">{activeOrg?"BUSINESS WORKSPACE":"RAREMEDIA POS / PLATFORM"}</span><h1>{activeOrg?tabLabel(tab):"Business management"}</h1></div><div className="top-actions">{activeOrg&&<button className="top-business-switch" onClick={()=>setActiveOrg(null)} title="Switch business"><Store size={15}/><span>Business: {activeOrg.name}</span><ChevronRight size={14}/></button>}<span className="secure"><ShieldCheck size={15}/> Secure workspace</span><div className="business-top-user"><div className="avatar" title={profile?.full_name||session.user.email}>{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div><span><b>{profile?.full_name||"RAREMEDIA User"}</b><small>{profile?.platform_role==="developer"?"Developer":admin?"Platform admin":"Business user"}</small></span></div></div></header>
       {message&&<div className="notice"><span>{message}</span><button onClick={()=>setMessage("")}><X size={16}/></button></div>}
       {!activeOrg?<section className="content platform-content"><div className="platform-hero"><div><span className="eyebrow">PLATFORM OVERVIEW</span><h2>{admin?"Business network":"Your businesses"}</h2><p>Monitor business workspaces and open a secure workspace.</p></div>{admin&&<button className="primary-btn" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create business</button>}</div>
         <div className="stat-grid"><Stat icon={<Store/>} label="Businesses" value={String(organizations.length)} hint="Available to your account"/><Stat icon={<CheckCircle2/>} label="Active businesses" value={String(organizations.filter(o=>o.status==="active").length)} hint="Currently enabled"/><Stat icon={<ShieldCheck/>} label="Platform access" value={profile?.platform_role==="developer"?"Developer":"Admin"} hint="Protected workspace"/></div>
