@@ -60,6 +60,8 @@ The Supabase CLI will deploy the function with JWT verification disabled because
 
 The Edge Function uses the Supabase-managed `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` environment variables. Do not expose the service role key to the browser.
 
+For owner invitation emails to reach customers, configure a production SMTP provider in Supabase Dashboard → Authentication → SMTP Settings, and set Authentication → URL Configuration → Site URL to the deployed POS URL. New owner accounts receive an invitation email automatically; the password is never included in the email. Existing owner accounts are linked without changing their password or sending a duplicate invite.
+
 ## 4. Create the first Raremedia Super Admin
 
 1. In Supabase Dashboard → Authentication → Users, create your own user.
@@ -77,7 +79,7 @@ where id = 'YOUR_AUTH_USER_UUID';
 
 After promoting an existing user, verify the SQL editor reports one updated row. If it reports zero rows, run migrations `0001` and `0003` and retry; `0003` backfills missing profile rows.
 
-When creating a business, set and confirm an owner login password. New owner accounts are created ready to sign in with that email and password; share the password securely. If the owner email already belongs to an account, that account is linked and its existing password is not changed.
+When creating a business, set and confirm an owner login password. New owner accounts receive a Supabase invitation email and can sign in with that email and password after accepting the invite; share the password securely, not by email. If the owner email already belongs to an account, that account is linked and its existing password is not changed.
 
 ### Grant a trusted developer platform access
 

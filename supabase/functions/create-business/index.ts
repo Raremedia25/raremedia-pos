@@ -36,7 +36,7 @@ Deno.serve(async (req: Request) => {
     if (ownerPassword.length < 8) return json({ error: "Owner password must be at least 8 characters." }, 400);
 
     let ownerId: string | null = null;
-    let ownerCreated = false;
+    let ownerInvited = false;
     for (let page = 1; !ownerId; page++) {
       const { data: listed, error: listError } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
       if (listError) return json({ error: `Could not check existing owner accounts: ${listError.message}` }, 500);
@@ -45,17 +45,22 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!ownerId) {
-      const { data: created, error: createUserError } = await admin.auth.admin.createUser({
-        email: ownerEmail,
+      const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(ownerEmail, {
+        data: { full_name: String(body.owner_name || "").trim() }
+      });
+      if (inviteError || !invited.user) {
+        return json({ error: inviteError?.message || "Could not invite the owner." }, 400);
+      }
+      ownerId = invited.user.id;
+      ownerInvited = true;
+
+      const { error: passwordError } = await admin.auth.admin.updateUserById(ownerId, {
         password: ownerPassword,
-        email_confirm: true,
         user_metadata: { full_name: String(body.owner_name || "").trim() }
       });
-      if (createUserError || !created.user) {
-        return json({ error: createUserError?.message || "Could not create the owner login." }, 400);
+      if (passwordError) {
+        return json({ error: `The invitation email was sent, but the owner password could not be set: ${passwordError.message}` }, 500);
       }
-      ownerId = created.user.id;
-      ownerCreated = true;
     }
 
     const { data: orgId, error: createError } = await admin.rpc("bootstrap_organization", {
@@ -69,7 +74,7 @@ Deno.serve(async (req: Request) => {
     });
     if (createError) return json({ error: createError.message }, 400);
 
-    return json({ organization_id: orgId, owner_user_id: ownerId, owner_created: ownerCreated });
+    return json({ organization_id: orgId, owner_user_id: ownerId, owner_invited: ownerInvited });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Unexpected server error" }, 500);
   }
