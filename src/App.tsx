@@ -20,6 +20,7 @@ function App() {
   const [loginEmail,setLoginEmail]=useState(""),[loginPassword,setLoginPassword]=useState("");
   const [showCreate,setShowCreate]=useState(false),[tab,setTab]=useState<Tab>("overview"),[refresh,setRefresh]=useState(0);
   const [businessSearch,setBusinessSearch]=useState(""),[businessStatus,setBusinessStatus]=useState<"all"|"active"|"suspended">("all");
+  const [businessStatusBusy,setBusinessStatusBusy]=useState("");
   const identityRequest=useRef(0);
   async function loadIdentity(authSession:Session|null){
     const request=++identityRequest.current;
@@ -85,6 +86,19 @@ function App() {
   const admin=profile?.platform_role==="platform_admin"||profile?.platform_role==="developer";
   const visibleOrganizations=organizations.filter(org=>(businessStatus==="all"||org.status===businessStatus)&&org.name.toLowerCase().includes(businessSearch.trim().toLowerCase()));
   const openBusiness=(o:Organization)=>{setActiveOrg(o);setTab("overview");};
+  async function changeBusinessStatus(org:Organization){
+    const nextStatus=org.status==="active"?"suspended":"active";
+    const action=nextStatus==="suspended"?"suspend":"reactivate";
+    if(!window.confirm(`${action==="suspend"?"Suspend":"Reactivate"} ${org.name}? ${nextStatus==="suspended"?"Business staff will lose access until it is reactivated.":"Business staff will regain access."}`))return;
+    if(!supabase)return;
+    setBusinessStatusBusy(org.id);setMessage("");
+    const {data,error}=await supabase.from("organizations").update({status:nextStatus}).eq("id",org.id).select("id,status").single();
+    setBusinessStatusBusy("");
+    if(error){setMessage(`Could not ${action} this business: ${databaseErrorMessage(error)}`);return;}
+    setOrganizations(current=>current.map(item=>item.id===org.id?{...item,status:data.status}:item));
+    if(activeOrg?.id===org.id)setActiveOrg(current=>current?{...current,status:data.status}:current);
+    setMessage(`${org.name} ${nextStatus==="suspended"?"suspended":"reactivated"}.`);
+  }
   return <div className={`app-shell ${activeOrg?"business-shell":""}`}>
     <aside className="sidebar">
       <div className="brand"><img className="brand-logo" src="/raremedia-rm.svg" alt="Raremedia RM"/><div><b>RAREMEDIA POS</b><span>SMART BUSINESS. BETTER CONTROL.</span></div></div>
@@ -113,7 +127,7 @@ function App() {
         <div className="stat-grid"><Stat icon={<Store/>} label="Businesses" value={String(organizations.length)} hint="Available to your account"/><Stat icon={<CheckCircle2/>} label="Active businesses" value={String(organizations.filter(o=>o.status==="active").length)} hint="Currently enabled"/><Stat icon={<ShieldCheck/>} label="Platform access" value={profile?.platform_role==="developer"?"Developer":"Admin"} hint="Protected workspace"/></div>
         <div className="platform-list-heading"><div><h3>Business workspaces</h3><p>Search and select a workspace to continue.</p></div><span className="count-pill">{visibleOrganizations.length} of {organizations.length}</span></div>
         <div className="platform-filters"><label className="search-box"><Search size={16}/><input aria-label="Search businesses" placeholder="Search business name…" value={businessSearch} onChange={e=>setBusinessSearch(e.target.value)}/></label><div className="filter-pills" aria-label="Filter businesses">{(["all","active","suspended"] as const).map(status=><button type="button" className={businessStatus===status?"selected":""} onClick={()=>setBusinessStatus(status)}>{status==="all"?"All businesses":status==="active"?"Active":"Suspended"}</button>)}</div></div>
-        {organizations.length===0?<div className="empty-state"><div className="empty-icon"><Building2/></div><h3>No business assigned yet</h3><p>{admin?"Create the first customer business to get started.":"Ask your Raremedia administrator to add your account."}</p>{admin&&<button className="primary-btn" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create first business</button>}</div>:visibleOrganizations.length===0?<div className="empty-state"><div className="empty-icon"><Search/></div><h3>No matching businesses</h3><p>Try another search or status filter.</p><button className="secondary-btn" onClick={()=>{setBusinessSearch("");setBusinessStatus("all");}}>Clear filters</button></div>:<div className="business-grid">{visibleOrganizations.map(o=><button className="business-card" key={o.id} onClick={()=>openBusiness(o)}><div className="business-card-top">{o.logo_url?<img className="business-logo" src={o.logo_url} alt={`${o.name} logo`}/>:<div className="business-logo-placeholder"><Store/></div>}<span className={`status ${o.status}`}>{o.status}</span></div><h3>{o.name}</h3><p>{o.business_type}</p><div className="business-card-bottom"><span>{o.currency}</span><span>Open workspace <ChevronRight size={16}/></span></div></button>)}</div>}
+        {organizations.length===0?<div className="empty-state"><div className="empty-icon"><Building2/></div><h3>No business assigned yet</h3><p>{admin?"Create the first customer business to get started.":"Ask your Raremedia administrator to add your account."}</p>{admin&&<button className="primary-btn" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create first business</button>}</div>:visibleOrganizations.length===0?<div className="empty-state"><div className="empty-icon"><Search/></div><h3>No matching businesses</h3><p>Try another search or status filter.</p><button className="secondary-btn" onClick={()=>{setBusinessSearch("");setBusinessStatus("all");}}>Clear filters</button></div>:<div className="business-grid">{visibleOrganizations.map(o=><div className="business-card-wrap" key={o.id}><button className="business-card" disabled={!admin&&o.status==="suspended"} onClick={()=>openBusiness(o)}><div className="business-card-top">{o.logo_url?<img className="business-logo" src={o.logo_url} alt={`${o.name} logo`}/>:<div className="business-logo-placeholder"><Store/></div>}<span className={`status ${o.status}`}>{o.status}</span></div><h3>{o.name}</h3><p>{o.business_type}</p><div className="business-card-bottom"><span>{o.currency}</span><span>{o.status==="suspended"&&!admin?"Access suspended":"Open workspace"}{!(o.status==="suspended"&&!admin)&&<ChevronRight size={16}/>}</span></div></button>{admin&&<button className={`business-status-action ${o.status==="active"?"suspend":"reactivate"}`} disabled={businessStatusBusy===o.id} onClick={()=>void changeBusinessStatus(o)}>{businessStatusBusy===o.id?"Updating…":o.status==="active"?"Suspend business":"Reactivate business"}</button>}</div>)}</div>}
       </section>:<section className={`content ${tab==="overview"?"dashboard-content":""}`}>
         {tab!=="overview"&&<><button className="back-link" onClick={()=>setActiveOrg(null)}><ArrowLeft size={16}/> All businesses</button>
         <div className="business-hero"><div className="hero-brand">{activeOrg.logo_url?<img src={activeOrg.logo_url}/>:<Store/>}</div><div><span className="eyebrow">BUSINESS WORKSPACE</span><h2>{activeOrg.name}</h2><p>{activeOrg.business_type} · {activeOrg.currency} · {activeOrg.address||"Address not set"}</p></div><span className={`status ${activeOrg.status}`}>{activeOrg.status}</span></div></>}

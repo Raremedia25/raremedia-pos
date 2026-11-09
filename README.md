@@ -46,8 +46,8 @@ Never place the Supabase `service_role` key in `.env` or frontend code.
 ## 3. Set up Supabase
 
 1. Open your Supabase project and open SQL Editor.
-2. Run the SQL files in `supabase/migrations` in numeric order: `0001` through `0005`.
-   Migration `0003` backfills profiles for existing Auth users and secures inventory and transaction writes behind atomic database functions. Migration `0004` adds the full-access developer role. Migration `0005` reserves direct membership edits for platform administrators; business team changes go through the checked `manage-team` Edge Function.
+2. Run the SQL files in `supabase/migrations` in numeric order: `0001` through `0006`.
+   Migration `0003` backfills profiles for existing Auth users and secures inventory and transaction writes behind atomic database functions. Migration `0004` adds the full-access developer role. Migration `0005` reserves direct membership edits for platform administrators; business team changes go through the checked `manage-team` Edge Function. Migration `0006` lets platform administrators suspend businesses and blocks business-member data access while suspended.
 3. Deploy the Edge Function:
 
 ```bash
