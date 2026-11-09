@@ -3,7 +3,7 @@ import {
   Activity, ArrowLeft, Building2, CheckCircle2, ChevronRight, CircleDollarSign,
   ClipboardList, Coffee, ImagePlus, LogOut, Package, Plus, Search, ShieldCheck,
   ShoppingCart, Store, Users, X, Truck, Wallet, BarChart3, Table2, RefreshCw,
-  House, Flame, Settings,
+  House, Flame, Settings, MessageCircle,
   Minus, Trash2, Printer, Boxes, FileText, ArrowUpRight, AlertTriangle
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./lib/supabase";
@@ -12,6 +12,7 @@ import type { Session } from "@supabase/supabase-js";
 
 type Tab = "overview"|"pos"|"products"|"stock"|"customers"|"suppliers"|"purchases"|"expenses"|"tables"|"reports"|"team";
 type CartLine = { product: Product; quantity: number };
+const managementTabs:Tab[]=["products","purchases","customers","suppliers","tables","expenses","team"];
 
 function App() {
   const [session,setSession]=useState<Session|null>(null),[profile,setProfile]=useState<Profile|null>(null);
@@ -21,7 +22,9 @@ function App() {
   const [showCreate,setShowCreate]=useState(false),[tab,setTab]=useState<Tab>("overview"),[refresh,setRefresh]=useState(0);
   const [businessSearch,setBusinessSearch]=useState(""),[businessStatus,setBusinessStatus]=useState<"all"|"active"|"suspended">("all");
   const [businessStatusBusy,setBusinessStatusBusy]=useState("");
+  const [managementExpanded,setManagementExpanded]=useState(false);
   const identityRequest=useRef(0);
+  useEffect(()=>{if(managementTabs.includes(tab))setManagementExpanded(true);},[tab]);
   async function loadIdentity(authSession:Session|null){
     const request=++identityRequest.current;
     setSession(authSession);
@@ -102,24 +105,26 @@ function App() {
   return <div className={`app-shell ${activeOrg?"business-shell":""}`}>
     <aside className="sidebar">
       <div className="brand"><img className="brand-logo" src="/raremedia-rm.svg" alt="Raremedia RM"/><div><b>RAREMEDIA POS</b><span>SMART BUSINESS. BETTER CONTROL.</span></div></div>
-      {activeOrg?<><div className="business-rail-brand" title={activeOrg.name}>{activeOrg.logo_url?<img src={activeOrg.logo_url} alt={`${activeOrg.name} logo`}/>:<span><Store size={21}/></span>}<b>{activeOrg.name}</b></div>
-        <nav className="business-primary-nav" aria-label="Business navigation">
-          <Nav tab={tab} set={setTab} value="overview" icon={<House/>}>Dashboard</Nav>
-          <Nav tab={tab} set={setTab} value="pos" icon={<ShoppingCart/>}>POS</Nav>
-          <Nav tab={tab} set={setTab} value="products" icon={<Package/>}>Products</Nav>
-          <Nav tab={tab} set={setTab} value="stock" icon={<Boxes/>}>Inventory</Nav>
-          <Nav tab={tab} set={setTab} value="purchases" icon={<ClipboardList/>}>Purchases</Nav>
-          <Nav tab={tab} set={setTab} value="customers" icon={<Users/>}>Customers</Nav>
-          <Nav tab={tab} set={setTab} value="suppliers" icon={<Truck/>}>Suppliers</Nav>
-          <Nav tab={tab} set={setTab} value="tables" icon={<Table2/>}>Tables</Nav>
+      {activeOrg?<><nav className="business-primary-nav" aria-label="Business navigation">
+          <Nav tab={tab} set={setTab} value="overview" icon={<House/>}>Home</Nav>
+          <Nav tab={tab} set={setTab} value="pos" icon={<ShoppingCart/>}>Sales</Nav>
           <button className="side-link kitchen-link" type="button" disabled title="Kitchen order workflow is not available yet"><Flame/><span>Kitchen</span></button>
-          <Nav tab={tab} set={setTab} value="expenses" icon={<Wallet/>}>Expenses</Nav>
+          <Nav tab={tab} set={setTab} value="stock" icon={<Package/>}>Stock</Nav>
           <Nav tab={tab} set={setTab} value="reports" icon={<BarChart3/>}>Reports</Nav>
-          {(admin||activeOrg.membership_role==="owner"||activeOrg.membership_role==="admin")&&<Nav tab={tab} set={setTab} value="team" icon={<Users/>}>Employees</Nav>}
-          <button className="side-link" type="button" disabled title="Business settings are not available yet"><Settings/><span>Settings</span></button>
+          <button className={`side-link management-link ${managementTabs.includes(tab)?"active":""}`} type="button" aria-expanded={managementExpanded} aria-controls="business-management-subnav" onClick={()=>setManagementExpanded(value=>!value)}><Settings/><span>Management</span></button>
+          {managementExpanded&&<div className="management-subnav" id="business-management-subnav" aria-label="Management menu">
+            <Nav tab={tab} set={setTab} value="products" icon={<Package/>}>Products</Nav>
+            <Nav tab={tab} set={setTab} value="purchases" icon={<ClipboardList/>}>Purchases</Nav>
+            <Nav tab={tab} set={setTab} value="expenses" icon={<Wallet/>}>Expenses</Nav>
+            <Nav tab={tab} set={setTab} value="customers" icon={<Users/>}>Customers</Nav>
+            <Nav tab={tab} set={setTab} value="suppliers" icon={<Truck/>}>Suppliers</Nav>
+            <Nav tab={tab} set={setTab} value="tables" icon={<Table2/>}>Tables</Nav>
+            {(admin||activeOrg.membership_role==="owner"||activeOrg.membership_role==="admin")&&<Nav tab={tab} set={setTab} value="team" icon={<Users/>}>Employees</Nav>}
+          </div>}
+          <button className="side-link chat-link" type="button" disabled title="Chat is not available yet"><MessageCircle/><span>Chat</span></button>
         </nav>
       </>:<><div className="side-label">PLATFORM</div><button className="side-link active" onClick={()=>setActiveOrg(null)}><Building2 size={18}/> Businesses</button></>}
-      <div className="sidebar-bottom"><div className="user-mini"><div className="avatar">{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div><div><b>{profile?.full_name||"RAREMEDIA User"}</b><span>{profile?.platform_role==="developer"?"Developer":admin?"Super Admin":session.user.email}</span></div></div><button className="side-link" onClick={signOut}><LogOut size={18}/> Sign out</button></div>
+      <div className="sidebar-bottom"><div className="user-mini"><div className="avatar">{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div><div><b>{profile?.full_name||"RAREMEDIA User"}</b><span>{profile?.platform_role==="developer"?"Developer":admin?"Super Admin":session.user.email}</span></div></div><button className="side-link" aria-label="Sign out" title="Sign out" onClick={signOut}><LogOut size={18}/><span>Sign out</span></button></div>
     </aside>
     <main className="main-area"><header className="topbar"><div><span className="eyebrow">{activeOrg?"BUSINESS WORKSPACE":"RAREMEDIA POS / PLATFORM"}</span><h1>{activeOrg?tabLabel(tab):"Business management"}</h1></div><div className="top-actions">{activeOrg&&<button className="top-business-switch" onClick={()=>setActiveOrg(null)} title="Switch business"><Store size={15}/><span>Business: {activeOrg.name}</span><ChevronRight size={14}/></button>}<span className="secure"><ShieldCheck size={15}/> Secure workspace</span><div className="business-top-user"><div className="avatar" title={profile?.full_name||session.user.email}>{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div><span><b>{profile?.full_name||"RAREMEDIA User"}</b><small>{profile?.platform_role==="developer"?"Developer":admin?"Platform admin":"Business user"}</small></span></div></div></header>
       {message&&<div className="notice"><span>{message}</span><button onClick={()=>setMessage("")}><X size={16}/></button></div>}

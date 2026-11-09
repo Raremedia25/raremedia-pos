@@ -124,6 +124,31 @@
 .business-status-action.suspend{background:#fff1ef;border-color:#f5d1cc;color:#b43f31}
 .business-status-action.reactivate{background:#e8f8ef;border-color:#ccebd8;color:#16814f}
 .business-status-action:disabled{opacity:.6;cursor:wait}
+.business-shell .sidebar{width:96px;padding:0 6px 10px;align-items:stretch;background:#040a1a;border-right:1px solid #101a2d}
+.business-shell .sidebar>.brand,.business-shell .business-rail-brand{display:none}
+.business-shell .main-area{margin-left:96px;width:calc(100% - 96px)}
+.business-shell .business-primary-nav{min-height:0;flex:1 1 auto;gap:0;padding:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#34415a transparent}
+.business-shell .sidebar .side-link{min-height:65px;margin:0;padding:8px 2px;border-radius:0;flex-direction:column;justify-content:center;gap:5px;color:#c5ccda;background:transparent;text-align:center;text-transform:uppercase;font-size:9px;font-weight:800;line-height:1.15;letter-spacing:.15px}
+.business-shell .sidebar .side-link svg{width:23px;height:23px;stroke-width:2.1}
+.business-shell .sidebar .side-link:hover:not(:disabled){background:#101a2b;color:#fff}
+.business-shell .sidebar .side-link.active,.business-shell .sidebar .side-link.active:hover{background:#963d10;color:#fff;box-shadow:none}
+.business-shell .sidebar .side-link.active svg{color:#fff}
+.business-shell .sidebar .side-link:disabled{opacity:.55;cursor:not-allowed}
+.business-shell .management-subnav{padding:3px 0;background:#0b1222}
+.business-shell .management-subnav .side-link{min-height:48px;font-size:7px;letter-spacing:0}
+.business-shell .management-subnav .side-link svg{width:19px;height:19px}
+.business-shell .sidebar-bottom{margin-top:auto;padding-top:6px}
+.business-shell .sidebar-bottom .user-mini{justify-content:center;padding:8px 0}
+.business-shell .sidebar-bottom .user-mini>div:last-child{display:none}
+.business-shell .sidebar-bottom .side-link{min-height:52px;font-size:8px}
+.business-shell .sidebar-bottom .side-link svg{width:19px;height:19px}
+@media(max-width:720px){
+ .business-shell .sidebar{width:76px;padding:0 4px 8px}
+ .business-shell .main-area{margin-left:76px;width:calc(100% - 76px)}
+ .business-shell .sidebar .side-link{min-height:58px;padding:6px 1px;gap:4px;font-size:7px}
+ .business-shell .sidebar .side-link svg{width:21px;height:21px}
+ .business-shell .management-subnav .side-link{min-height:46px;font-size:6px}
+}
 @media(max-width:720px){.login-layout{min-height:100svh;grid-template-columns:minmax(0,1fr)}.login-art{display:none}.login-panel{min-height:100svh;padding:24px}.login-form{width:min(390px,100%)}}
 .team-email{display:block;color:#8792a3;font-size:10px;margin-top:3px}
 .team-role-select{border:1px solid #dfe5ee;border-radius:6px;padding:7px 9px;background:#fff;color:#344054;font-size:10px;text-transform:capitalize}
