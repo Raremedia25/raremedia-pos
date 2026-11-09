@@ -3,7 +3,7 @@ import {
   Activity, ArrowLeft, Building2, CheckCircle2, ChevronRight, CircleDollarSign,
   ClipboardList, Coffee, ImagePlus, LogOut, Package, Plus, Search, ShieldCheck,
   ShoppingCart, Store, Users, X, Truck, Wallet, BarChart3, Table2, RefreshCw,
-  Minus, Trash2, Printer, Boxes, FileText
+  Minus, Trash2, Printer, Boxes, FileText, ArrowUpRight, AlertTriangle
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./lib/supabase";
 import type { Organization, Product, Profile } from "./types";
@@ -40,34 +40,37 @@ function App() {
   if(!session)return <LoginScreen email={loginEmail} password={loginPassword} setEmail={setLoginEmail} setPassword={setLoginPassword} onSubmit={signIn} message={message}/>;
   const admin=profile?.platform_role==="platform_admin";
   const openBusiness=(o:Organization)=>{setActiveOrg(o);setTab("overview");};
-  return <div className="app-shell">
+  return <div className={`app-shell ${activeOrg?"business-shell":""}`}>
     <aside className="sidebar">
-      <div className="brand"><div className="brand-mark">R</div><div><b>RAREMEDIA</b><span>POINT OF SALE</span></div></div>
-      <div className="side-label">PLATFORM</div><button className={`side-link ${!activeOrg?"active":""}`} onClick={()=>setActiveOrg(null)}><Building2 size={18}/> Businesses</button>
-      {activeOrg&&<><div className="side-label">BUSINESS OPERATIONS</div>
+      <div className="brand"><div className="brand-mark">R</div><div><b>RAREMEDIA POS</b><span>SMART BUSINESS. BETTER CONTROL.</span></div></div>
+      {activeOrg?<><button className="business-switch" onClick={()=>setActiveOrg(null)} title="Switch business">
+        {activeOrg.logo_url?<img src={activeOrg.logo_url} alt=""/>:<span className="business-switch-mark"><Store size={18}/></span>}
+        <span><b>{activeOrg.name}</b><small>Switch business</small></span><ChevronRight size={16}/>
+      </button><div className="side-label">BUSINESS OPERATIONS</div>
         <Nav tab={tab} set={setTab} value="overview" icon={<Activity/>}>Dashboard</Nav>
         <Nav tab={tab} set={setTab} value="pos" icon={<ShoppingCart/>}>Point of Sale</Nav>
         <Nav tab={tab} set={setTab} value="products" icon={<Package/>}>Products</Nav>
-        <Nav tab={tab} set={setTab} value="stock" icon={<Boxes/>}>Stock management</Nav>
+        <Nav tab={tab} set={setTab} value="stock" icon={<Boxes/>}>Inventory</Nav>
+        <Nav tab={tab} set={setTab} value="purchases" icon={<ClipboardList/>}>Purchases</Nav>
         <Nav tab={tab} set={setTab} value="customers" icon={<Users/>}>Customers</Nav>
         <Nav tab={tab} set={setTab} value="suppliers" icon={<Truck/>}>Suppliers</Nav>
-        <Nav tab={tab} set={setTab} value="purchases" icon={<ClipboardList/>}>Purchases</Nav>
-        <Nav tab={tab} set={setTab} value="expenses" icon={<Wallet/>}>Expenses</Nav>
         <Nav tab={tab} set={setTab} value="tables" icon={<Table2/>}>Tables</Nav>
+        <Nav tab={tab} set={setTab} value="expenses" icon={<Wallet/>}>Expenses</Nav>
         <Nav tab={tab} set={setTab} value="reports" icon={<BarChart3/>}>Reports</Nav>
         <Nav tab={tab} set={setTab} value="team" icon={<Users/>}>Team</Nav>
-      </>}
+      </>:<><div className="side-label">PLATFORM</div><button className="side-link active" onClick={()=>setActiveOrg(null)}><Building2 size={18}/> Businesses</button></>}
       <div className="sidebar-bottom"><div className="user-mini"><div className="avatar">{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div><div><b>{profile?.full_name||"RAREMEDIA User"}</b><span>{admin?"Super Admin":session.user.email}</span></div></div><button className="side-link" onClick={signOut}><LogOut size={18}/> Sign out</button></div>
     </aside>
-    <main className="main-area"><header className="topbar"><div><span className="eyebrow">RAREMEDIA POS / {activeOrg?activeOrg.name:"PLATFORM"}</span><h1>{activeOrg?tabLabel(tab):"Business management"}</h1></div><div className="top-actions"><span className="secure"><ShieldCheck size={15}/> Secure workspace</span><div className="avatar">{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div></div></header>
+    <main className="main-area"><header className="topbar"><div><span className="eyebrow">RAREMEDIA POS / {activeOrg?activeOrg.name:"PLATFORM"}</span><h1>{activeOrg?tabLabel(tab):"Business management"}</h1></div><div className="top-actions">{activeOrg&&<button className="top-business-switch" onClick={()=>setActiveOrg(null)}><Store size={15}/><span>{activeOrg.name}</span><ChevronRight size={14}/></button>}<span className="secure"><ShieldCheck size={15}/> Secure workspace</span><div className="avatar" title={profile?.full_name||session.user.email}>{(profile?.full_name||session.user.email||"R").slice(0,1).toUpperCase()}</div></div></header>
       {message&&<div className="notice"><span>{message}</span><button onClick={()=>setMessage("")}><X size={16}/></button></div>}
       {!activeOrg?<section className="content"><div className="welcome-row"><div><h2>{admin?"Your business network":"Your businesses"}</h2><p>Each business has independent products, users, stock and financial records.</p></div>{admin&&<button className="primary-btn" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create business</button>}</div>
         <div className="stat-grid"><Stat icon={<Store/>} label="Businesses" value={String(organizations.length)} hint="Available to your account"/><Stat icon={<CheckCircle2/>} label="Active businesses" value={String(organizations.filter(o=>o.status==="active").length)} hint="Currently enabled"/><Stat icon={<ShieldCheck/>} label="Data protection" value="RLS" hint="Database-level isolation"/></div>
         <div className="section-heading"><div><h3>Registered businesses</h3><p>Select a business to open its workspace.</p></div><span className="count-pill">{organizations.length} total</span></div>
         {organizations.length===0?<div className="empty-state"><div className="empty-icon"><Building2/></div><h3>No business assigned yet</h3><p>{admin?"Create the first customer business to get started.":"Ask your Raremedia administrator to add your account."}</p>{admin&&<button className="primary-btn" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create first business</button>}</div>:<div className="business-grid">{organizations.map(o=><button className="business-card" key={o.id} onClick={()=>openBusiness(o)}><div className="business-card-top">{o.logo_url?<img className="business-logo" src={o.logo_url}/>:<div className="business-logo-placeholder"><Store/></div>}<span className={`status ${o.status}`}>{o.status}</span></div><h3>{o.name}</h3><p>{o.business_type}</p><div className="business-card-bottom"><span>{o.currency}</span><span>Open workspace <ChevronRight size={16}/></span></div></button>)}</div>}
-      </section>:<section className="content"><button className="back-link" onClick={()=>setActiveOrg(null)}><ArrowLeft size={16}/> All businesses</button>
-        <div className="business-hero"><div className="hero-brand">{activeOrg.logo_url?<img src={activeOrg.logo_url}/>:<Store/>}</div><div><span className="eyebrow">BUSINESS WORKSPACE</span><h2>{activeOrg.name}</h2><p>{activeOrg.business_type} · {activeOrg.currency} · {activeOrg.address||"Address not set"}</p></div><span className={`status ${activeOrg.status}`}>{activeOrg.status}</span></div>
-        {tab==="overview"&&<Overview org={activeOrg} products={products} setTab={setTab}/>}
+      </section>:<section className={`content ${tab==="overview"?"dashboard-content":""}`}>
+        {tab!=="overview"&&<><button className="back-link" onClick={()=>setActiveOrg(null)}><ArrowLeft size={16}/> All businesses</button>
+        <div className="business-hero"><div className="hero-brand">{activeOrg.logo_url?<img src={activeOrg.logo_url}/>:<Store/>}</div><div><span className="eyebrow">BUSINESS WORKSPACE</span><h2>{activeOrg.name}</h2><p>{activeOrg.business_type} · {activeOrg.currency} · {activeOrg.address||"Address not set"}</p></div><span className={`status ${activeOrg.status}`}>{activeOrg.status}</span></div></>}
+        {tab==="overview"&&<Overview org={activeOrg} products={products} setTab={setTab} onMessage={setMessage}/>}
         {tab==="pos"&&<POS org={activeOrg} products={products} onDone={()=>setRefresh(x=>x+1)} onMessage={setMessage}/>}
         {tab==="products"&&<Products org={activeOrg} products={products} onRefresh={()=>setRefresh(x=>x+1)} onMessage={setMessage}/>}
         {tab==="stock"&&<Stock org={activeOrg} products={products} onRefresh={()=>setRefresh(x=>x+1)} onMessage={setMessage}/>}
@@ -105,10 +108,77 @@ function CreateBusinessModal({onClose,onCreated,onMessage}:any){
   <label className="wide upload-label"><span><ImagePlus size={18}/> Business logo</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>L(e.target.files?.[0]||null)}/><small>{logo?.name||"PNG, JPG or WEBP"}</small></label>
  </div><label className="checkbox-line"><input type="checkbox" checked={f.load_demo} onChange={e=>set("load_demo",e.target.checked)}/> Load demo catalogue (starter products, recipes, tables, suppliers and stock)</label>{error&&<div className="error-box">{error}</div>}<div className="modal-actions"><button type="button" className="secondary-btn" onClick={onClose}>Cancel</button><button className="primary-btn" disabled={saving}>{saving?"Creating…":"Create business & invite owner"}</button></div></form></div></div>;
 }
-function Overview({org,products,setTab}:any){
- const [summary,S]=useState({sales:0,expenses:0,count:0,customers:0});
- useEffect(()=>{(async()=>{if(!supabase)return;const [s,e,c]=await Promise.all([supabase.from("sales").select("total",{count:"exact"}).eq("organization_id",org.id).eq("status","completed"),supabase.from("expenses").select("amount").eq("organization_id",org.id),supabase.from("customers").select("id",{count:"exact",head:true}).eq("organization_id",org.id)]);S({sales:(s.data||[]).reduce((a:any,x:any)=>a+Number(x.total),0),expenses:(e.data||[]).reduce((a:any,x:any)=>a+Number(x.amount),0),count:s.count||0,customers:c.count||0});})();},[org.id]);
- return <><div className="stat-grid"><Stat icon={<CircleDollarSign/>} label="Total sales" value={money(summary.sales,org.currency)} hint={`${summary.count} completed sales`}/><Stat icon={<Wallet/>} label="Expenses" value={money(summary.expenses,org.currency)} hint="Recorded expenses"/><Stat icon={<Package/>} label="Products" value={String(products.length)} hint="This business only"/></div><div className="quick-grid">{[["Point of Sale","Create a sale and print its receipt",ShoppingCart,"pos"],["Products","Manage your catalogue and prices",Package,"products"],["Stock","Adjust inventory and view stock levels",Boxes,"stock"],["Reports","Review sales and expenses",BarChart3,"reports"]].map(([t,d,I,k]:any)=><button className="quick-card" onClick={()=>setTab(k)}><I/><b>{t}</b><span>{d}</span><ChevronRight/></button>)}</div></>;
+function Overview({org,setTab,onMessage}:any){
+ const [dashboard,D]=useState<any>({loading:true,today:0,month:0,expenses:0,recent:[],top:[],week:[],low:[]});
+ useEffect(()=>{let mounted=true;(async()=>{
+   if(!supabase)return;
+   const now=new Date(),dayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),monthStart=new Date(now.getFullYear(),now.getMonth(),1),weekStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()-6);
+   const [todaySales,monthSales,weekSales,monthExpenses,recentSales,monthItems,stockResult]=await Promise.all([
+     supabase.from("sales").select("total").eq("organization_id",org.id).eq("status","completed").gte("created_at",dayStart.toISOString()),
+     supabase.from("sales").select("total").eq("organization_id",org.id).eq("status","completed").gte("created_at",monthStart.toISOString()),
+     supabase.from("sales").select("created_at,total").eq("organization_id",org.id).eq("status","completed").gte("created_at",weekStart.toISOString()),
+     supabase.from("expenses").select("amount").eq("organization_id",org.id).gte("created_at",monthStart.toISOString()),
+     supabase.from("sales").select("id,receipt_number,total,created_at,status").eq("organization_id",org.id).eq("status","completed").order("created_at",{ascending:false}).limit(5),
+     supabase.from("sale_items").select("product_name,quantity,line_total,sales!inner(created_at,status)").eq("organization_id",org.id).gte("sales.created_at",monthStart.toISOString()).eq("sales.status","completed"),
+     supabase.from("products").select("id,name,stock_quantity,low_stock_threshold").eq("organization_id",org.id).eq("is_active",true).order("stock_quantity",{ascending:true})
+   ]);
+   if(!mounted)return;
+   const failed=[todaySales,monthSales,weekSales,monthExpenses,recentSales,monthItems,stockResult].find(result=>result.error);
+   if(failed?.error)onMessage?.(`Dashboard data could not be fully loaded: ${failed.error.message}`);
+   const week=Array.from({length:7},(_,index)=>{
+     const date=new Date(now.getFullYear(),now.getMonth(),now.getDate()-6+index);
+     const key=`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+     const total=(weekSales.data||[]).reduce((sum:number,row:any)=>{
+       const saleDate=new Date(row.created_at),saleKey=`${saleDate.getFullYear()}-${saleDate.getMonth()}-${saleDate.getDate()}`;
+       return saleKey===key?sum+Number(row.total):sum;
+     },0);
+     return {label:date.toLocaleDateString(undefined,{weekday:"short"}),total};
+   });
+   const topMap=new Map<string,{name:string;quantity:number;total:number}>();
+   (monthItems.data||[]).forEach((item:any)=>{
+     const current=topMap.get(item.product_name)||{name:item.product_name,quantity:0,total:0};
+     current.quantity+=Number(item.quantity);current.total+=Number(item.line_total);topMap.set(item.product_name,current);
+   });
+   const low=(stockResult.data||[]).filter((product:any)=>Number(product.stock_quantity)<=Number(product.low_stock_threshold));
+   D({
+     loading:false,
+     today:(todaySales.data||[]).reduce((sum:number,row:any)=>sum+Number(row.total),0),
+     month:(monthSales.data||[]).reduce((sum:number,row:any)=>sum+Number(row.total),0),
+     expenses:(monthExpenses.data||[]).reduce((sum:number,row:any)=>sum+Number(row.amount),0),
+     recent:recentSales.data||[],
+     top:[...topMap.values()].sort((a,b)=>b.quantity-a.quantity).slice(0,5),
+     week,low:low.slice(0,5),lowCount:low.length
+   });
+ })();return()=>{mounted=false;};},[org.id,onMessage]);
+ const maxWeek=Math.max(1,...dashboard.week.map((day:any)=>day.total));
+ const chartPoints=dashboard.week.map((day:any,index:number)=>({x:24+index*55,y:142-(day.total/maxWeek)*105}));
+ const linePoints=chartPoints.map((point:any)=>`${point.x},${point.y}`).join(" ");
+ const areaPoints=chartPoints.length?`24,160 ${linePoints} 354,160`:"24,160 354,160";
+ const actions=[["New sale","Start a checkout",ShoppingCart,"pos"],["Add product","Update your catalogue",Package,"products"],["Record purchase","Restock inventory",ClipboardList,"purchases"],["Add expense","Log a business expense",Wallet,"expenses"],["View reports","Review business performance",BarChart3,"reports"],["Manage tables","Update table status",Table2,"tables"]];
+ return <div className="dashboard">
+   <div className="dashboard-welcome"><div><span className="eyebrow">YOUR BUSINESS AT A GLANCE</span><h2>Welcome to {org.name}</h2><p>{org.business_type} <span>·</span> {new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p></div>{org.logo_url?<img src={org.logo_url} alt={`${org.name} logo`}/>:<div className="welcome-logo"><Store size={32}/></div>}</div>
+   <div className="dashboard-stats">
+     <DashboardStat icon={<ShoppingCart/>} tone="blue" label="Today's sales" value={dashboard.loading?"—":money(dashboard.today,org.currency)} hint="Completed sales today"/>
+     <DashboardStat icon={<BarChart3/>} tone="green" label="This month" value={dashboard.loading?"—":money(dashboard.month,org.currency)} hint="Completed sales this month"/>
+     <DashboardStat icon={<Wallet/>} tone="purple" label="Expenses this month" value={dashboard.loading?"—":money(dashboard.expenses,org.currency)} hint="Recorded expenses"/>
+     <DashboardStat icon={<AlertTriangle/>} tone="orange" label="Stock alerts" value={dashboard.loading?"—":`${dashboard.lowCount||0} items`} hint="At or below reorder level" action={()=>setTab("stock")}/>
+   </div>
+   <div className="dashboard-row primary-row">
+     <section className="dashboard-panel sales-panel"><div className="panel-heading"><h3><BarChart3/> Sales overview</h3><span>Last 7 days</span></div>
+       <div className="sales-chart"><div className="chart-y-labels"><span>{money(maxWeek,org.currency)}</span><span>{money(maxWeek/2,org.currency)}</span><span>0</span></div><svg viewBox="0 0 380 175" role="img" aria-label="Sales totals over the last seven days"><defs><linearGradient id="salesFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#2563eb" stopOpacity=".25"/><stop offset="100%" stopColor="#2563eb" stopOpacity="0"/></linearGradient></defs><polygon points={areaPoints} fill="url(#salesFill)"/><polyline points={linePoints} fill="none" stroke="#2563eb" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"/>{chartPoints.map((point:any,index:number)=><circle key={index} cx={point.x} cy={point.y} r="4" fill="#fff" stroke="#2563eb" strokeWidth="2"/>)}</svg></div>
+       <div className="chart-x-labels">{dashboard.week.map((day:any,index:number)=><span key={index}>{day.label}</span>)}</div>
+     </section>
+     <section className="dashboard-panel top-products-panel"><div className="panel-heading"><h3><Package/> Top products</h3><button onClick={()=>setTab("products")}>View all <ArrowUpRight size={14}/></button></div>{dashboard.top.length?dashboard.top.map((item:any,index:number)=><div className="top-product" key={item.name}><span className={`product-rank rank-${index+1}`}>{index+1}</span><div><b>{item.name}</b><small>{item.quantity} sold this month</small></div><strong>{money(item.total,org.currency)}</strong></div>):<div className="panel-empty">{dashboard.loading?"Loading sales…":"No product sales this month yet."}</div>}</section>
+     <section className="dashboard-panel quick-actions-panel"><div className="panel-heading"><h3><Activity/> Quick actions</h3></div><div className="quick-actions">{actions.map(([title,description,Icon,target]:any)=><button key={title} className={`quick-action action-${target}`} onClick={()=>setTab(target)}><Icon/><b>{title}</b><small>{description}</small></button>)}</div></section>
+   </div>
+   <div className="dashboard-row secondary-row">
+     <section className="dashboard-panel recent-sales-panel"><div className="panel-heading"><h3><FileText/> Recent sales</h3><button onClick={()=>setTab("reports")}>View reports <ArrowUpRight size={14}/></button></div><div className="dashboard-table-wrap"><table className="dashboard-table"><thead><tr><th>RECEIPT</th><th>TIME</th><th>STATUS</th><th className="amount-cell">AMOUNT</th></tr></thead><tbody>{dashboard.recent.map((sale:any)=><tr key={sale.id}><td><b>{sale.receipt_number||sale.id.slice(0,8).toUpperCase()}</b></td><td>{new Date(sale.created_at).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</td><td><span className="sale-status">Completed</span></td><td className="amount-cell">{money(Number(sale.total),org.currency)}</td></tr>)}{!dashboard.recent.length&&<tr><td className="dashboard-empty" colSpan={4}>{dashboard.loading?"Loading sales…":"No completed sales yet."}</td></tr>}</tbody></table></div></section>
+     <section className="dashboard-panel stock-status-panel"><div className="panel-heading"><h3><Boxes/> Stock status</h3><button onClick={()=>setTab("stock")}>View inventory <ArrowUpRight size={14}/></button></div>{dashboard.low.length?dashboard.low.map((product:any)=><div className="stock-row" key={product.id}><span className="stock-product-icon"><Package size={17}/></span><b>{product.name}</b><span>{product.stock_quantity} left</span><em>Low stock</em></div>):<div className="panel-empty">{dashboard.loading?"Loading stock…":"No low-stock products."}</div>}</section>
+   </div>
+ </div>;
+}
+function DashboardStat({icon,tone,label,value,hint,action}:{icon:React.ReactNode;tone:string;label:string;value:string;hint:string;action?:()=>void}){
+ return <div className={`dashboard-stat stat-${tone}`}><div className="dashboard-stat-top"><span className="dashboard-stat-icon">{icon}</span>{action&&<button onClick={action}>View inventory <ChevronRight size={13}/></button>}</div><span className="dashboard-stat-label">{label}</span><strong>{value}</strong><small>{hint}</small></div>;
 }
 function money(n:number,c:string){return `${n.toLocaleString(undefined,{maximumFractionDigits:2})} ${c}`;}
 function Products({org,products,onRefresh,onMessage}:any){
