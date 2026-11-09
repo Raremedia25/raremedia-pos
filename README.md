@@ -46,8 +46,8 @@ Never place the Supabase `service_role` key in `.env` or frontend code.
 ## 3. Set up Supabase
 
 1. Open your Supabase project and open SQL Editor.
-2. Run the SQL files in `supabase/migrations` in numeric order: `0001`, `0002`, then `0003`.
-   Migration `0003` backfills profiles for existing Auth users and secures inventory and transaction writes behind atomic database functions.
+2. Run the SQL files in `supabase/migrations` in numeric order: `0001`, `0002`, `0003`, then `0004`.
+   Migration `0003` backfills profiles for existing Auth users and secures inventory and transaction writes behind atomic database functions. Migration `0004` adds the full-access developer role.
 3. Deploy the Edge Function:
 
 ```bash
@@ -77,7 +77,21 @@ where id = 'YOUR_AUTH_USER_UUID';
 
 After promoting an existing user, verify the SQL editor reports one updated row. If it reports zero rows, run migrations `0001` and `0003` and retry; `0003` backfills missing profile rows.
 
-Do not give platform-admin access to customers.
+When creating a business, set and confirm an owner login password. New owner accounts are created ready to sign in with that email and password; share the password securely. If the owner email already belongs to an account, that account is linked and its existing password is not changed.
+
+### Grant a trusted developer platform access
+
+Create the developer's Auth account first, then run this as a trusted administrator, replacing the email:
+
+```sql
+update public.profiles p
+set platform_role = 'developer'
+from auth.users u
+where p.id = u.id
+  and lower(u.email) = lower('developer@example.com');
+```
+
+Verify one row was updated. Developers can see and manage every business and have the same platform-wide data access as a platform admin. Only grant this role to trusted Raremedia developers; do not grant it to customers.
 
 ## 5. Run the web app
 

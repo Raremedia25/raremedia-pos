@@ -1,7 +1,7 @@
 export type Profile = {
   id: string;
   full_name: string | null;
-  platform_role: "platform_admin" | "user";
+  platform_role: "platform_admin" | "developer" | "user";
 };
 
 export type Organization = {

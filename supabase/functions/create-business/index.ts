@@ -24,27 +24,38 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(url, serviceKey);
     const { data: profile, error: profileError } = await admin.from("profiles")
       .select("platform_role").eq("id", userData.user.id).single();
-    if (profileError || profile?.platform_role !== "platform_admin") {
-      return json({ error: "Only Raremedia platform administrators can create businesses." }, 403);
+    if (profileError || !["platform_admin", "developer"].includes(profile?.platform_role || "")) {
+      return json({ error: "Only Raremedia platform administrators and developers can create businesses." }, 403);
     }
 
     const body = await req.json();
     const name = String(body.name || "").trim();
     const ownerEmail = String(body.owner_email || "").trim().toLowerCase();
+    const ownerPassword = String(body.password || "");
     if (!name || !ownerEmail) return json({ error: "Business name and owner email are required." }, 400);
+    if (ownerPassword.length < 8) return json({ error: "Owner password must be at least 8 characters." }, 400);
 
-    // Invite the business owner. If the account already exists, attach that account.
     let ownerId: string | null = null;
-    const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(ownerEmail, {
-      data: { full_name: String(body.owner_name || "").trim() }
-    });
-    if (!inviteError && invited.user) ownerId = invited.user.id;
-    if (!ownerId) {
-      const { data: listed, error: listError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      if (!listError) ownerId = listed.users.find(u => u.email?.toLowerCase() === ownerEmail)?.id || null;
+    let ownerCreated = false;
+    for (let page = 1; !ownerId; page++) {
+      const { data: listed, error: listError } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (listError) return json({ error: `Could not check existing owner accounts: ${listError.message}` }, 500);
+      ownerId = listed.users.find(user => user.email?.toLowerCase() === ownerEmail)?.id || null;
+      if (ownerId || listed.users.length < 1000) break;
     }
+
     if (!ownerId) {
-      return json({ error: inviteError?.message || "Could not invite or locate the owner account." }, 400);
+      const { data: created, error: createUserError } = await admin.auth.admin.createUser({
+        email: ownerEmail,
+        password: ownerPassword,
+        email_confirm: true,
+        user_metadata: { full_name: String(body.owner_name || "").trim() }
+      });
+      if (createUserError || !created.user) {
+        return json({ error: createUserError?.message || "Could not create the owner login." }, 400);
+      }
+      ownerId = created.user.id;
+      ownerCreated = true;
     }
 
     const { data: orgId, error: createError } = await admin.rpc("bootstrap_organization", {
@@ -58,7 +69,7 @@ Deno.serve(async (req: Request) => {
     });
     if (createError) return json({ error: createError.message }, 400);
 
-    return json({ organization_id: orgId, owner_user_id: ownerId, invited: !inviteError });
+    return json({ organization_id: orgId, owner_user_id: ownerId, owner_created: ownerCreated });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Unexpected server error" }, 500);
   }
